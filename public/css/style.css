@@ -6,3 +6,24 @@ body {
 a {
   color: #00B7FF;
 }
+
+#main {
+  width: 1000px;
+}
+.content {
+  float: left;
+  width: 800px;
+}
+.sidebar {
+  float: right;
+  width: 180px;
+}
+
+#gameBoard {
+  border: 1px solid #000;
+  width: 800px;
+  height: 600px;
+}
+.player.currUser {
+  color: #f00;
+}

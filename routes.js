@@ -1,6 +1,6 @@
 var express = require('express'),
-    app = module.exports = express.createServer(),
-    PORT = 8080;
+    app     = module.exports = express.createServer(),
+    PORT    = 8080;
 
 // Configuration
 
@@ -25,7 +25,7 @@ app.configure('production', function(){
 
 app.get('/', function(req, res){
   res.render('index', {
-    title: 'Express'
+    title: 'Game'
   });
 });
 
