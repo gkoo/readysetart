@@ -6,14 +6,16 @@ var io       = require('socket.io'),
     Backbone = require('backbone'),
 
     playerLib         = require('./public/js/player.js'),
+    teamLib           = require('./public/js/team.js'),
     statusLib         = require('./public/js/gameStatus.js').GameStatus,
-    PlayerModel       = playerLib.PlayerModel,
-    PlayersCollection = playerLib.PlayersCollection,
     gameStatus        = new statusLib();
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
-    this.set({ 'players':    new PlayersCollection(),
+    var teamCollection = new teamLib.TeamCollection();
+    teamCollection.setNumTeams(2);
+    this.set({ 'players':    new playerLib.PlayersCollection(),
+               'teams':      teamCollection,
                'gameStatus': gameStatus.NOT_STARTED });
   },
 }),
@@ -21,7 +23,9 @@ GameModel = Backbone.Model.extend({
 GameController = function() {
   var controller = {
     initialize: function() {
-      _u.bindAll(this, 'sync');
+      _u.bindAll(this,
+                 'sync',
+                 'computeUserTeam');
       this.model = new GameModel();
       return this;
     },
@@ -40,7 +44,10 @@ GameController = function() {
             isLeader  = false,
             initInfo  = { 'id':   yourId,
                           'name': yourName,
-                          'isLeader': false };
+                          'isLeader': false },
+            yourTeam;
+
+        yourTeam  = _this.computeUserTeam(yourId);
 
         if (players.length) {
           // send existing player info
@@ -111,6 +118,19 @@ GameController = function() {
         pict.listen(socket);
 
       });
+    },
+
+    computeUserTeam: function(userId) {
+
+      var teams = this.model.get('teams'),
+          minPlayerTeam = teams.getMinPlayerTeam(), // team with the fewest players
+          players;
+
+      players = minPlayerTeam.get('players');
+      players.push(userId);
+      minPlayerTeam.set({ 'players': players });
+      console.log('added player ' + userId + ' to team ' + minPlayerTeam.id);
+      return minPlayerTeam.id;
     },
 
     sync: function(data, socket) {

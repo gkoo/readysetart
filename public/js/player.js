@@ -25,7 +25,6 @@ PlayersCollection = Backbone.Collection.extend({
   model: PlayerModel,
   getLeader: function() {
     return this.find(function(player) {
-      console.log('foudn the leader');
       return player.get('isLeader');
     });
   }
