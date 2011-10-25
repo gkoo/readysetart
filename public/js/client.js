@@ -1,13 +1,15 @@
+// TODO: fix curruser
 var socket = io.connect();
 
 $(function() {
   var PlayerView = Backbone.View.extend({
     tagName: 'li',
 
-    initialize: function() {
+    initialize: function(o) {
       // bind "this" to PlayerView
       _.bindAll(this, 'render');
       this.model.bind('change', this.render, this); // update the view every time the model changes.
+      this.isCurrUser = o.isCurrUser;
     },
 
     render: function() {
@@ -15,7 +17,7 @@ $(function() {
       el.text(this.model.get('name'));
       el.attr('id', 'player-' + this.model.get('id'));
       el.addClass('player');
-      if (this.model.get('isUser')) {
+      if (this.isCurrUser) {
         el.addClass('currUser');
       }
       return el;
@@ -38,7 +40,8 @@ $(function() {
       this.playerViews = [];
 
       this.collection.bind('add', function(model) {
-        _this.playerViews.push(new PlayerView({ model: model }));
+        _this.playerViews.push(new PlayerView({ model: model,
+                                                isCurrUser: model.get('id') === this.currUserId }));
         _this.render();
       });
     },
@@ -64,7 +67,11 @@ $(function() {
     },
 
     handlePlayerName: function(o) {
-      var playerView = _.detect(this.playerViews, function(view) { return view.model.get('id') === o.id; });
+      var playerView;
+      if (o && o.isSelf) {
+        o.id = this.currUserId;
+      }
+      playerView = _.detect(this.playerViews, function(view) { return view.model.get('id') === o.id; });
       playerView.model.set({ 'name': o.name });
       if (o.sync) {
         playerView.model.save();
@@ -74,45 +81,6 @@ $(function() {
     handlePlayerDisconnect: function(id) {
       this.$('#player-'+id).remove();
     }
-  }),
-
-  PlayerInfo = Backbone.View.extend({
-    el: $('#main').children('.playerSetup'),
-
-    initialize: function(o) {
-      // set up custom events
-      _.extend(this, Backbone.Events);
-
-      // bind "this" to PlayerInfo
-      _.bindAll(this, 'handleUserName');
-
-      this.nameInputElem = $('#nameField');
-      this.infoDisplay = this.$('.yourInfoDisplay');
-      this.getUserId = o.getUserId;
-    },
-
-    events: {
-      'click #nameSubmit': 'handleUserName',
-      'keypress #nameField': 'handleUserName'
-    },
-
-    // event handler to grab the user input from the
-    // field and populate player name
-    handleUserName: function(evt) {
-      var name = this.nameInputElem.attr('value'),
-          type = evt.type;
-      if (type === 'keypress' && evt.keyCode !== 13) {
-        return;
-      }
-      this.nameInputElem.attr('value', '');
-
-      this.trigger('setName', {
-        id: this.getUserId(),
-        name: name,
-        sync: true
-      });
-      return false;
-    },
   }),
 
   GameControlsView = Backbone.View.extend({
@@ -145,6 +113,10 @@ $(function() {
         this.$('.startGameBtn').attr('disabled', 'disabled');
         this.$('.endTurnBtn').removeAttr('disabled');
       }
+    },
+
+    showControls: function() {
+      this.el.show();
     }
   }),
 
@@ -160,6 +132,31 @@ $(function() {
     }
   }),
 
+  GameIntroView = Backbone.View.extend({
+    el: $('#intro'),
+
+    initialize: function() {
+      _.bindAll(this, 'handleName');
+      _.extend(this, Backbone.Events);
+    },
+
+    events: {
+      'submit #nameForm': 'handleName'
+    },
+
+    handleName: function(evt) {
+      evt.preventDefault();
+
+      this.trigger('setName', {
+        isSelf: true,
+        name: this.$('.nameField').val(),
+        sync: true
+      });
+
+      this.el.hide();
+    }
+  });
+
   GameModel = Backbone.Model.extend(),
 
   GameController = function() {
@@ -168,7 +165,6 @@ $(function() {
         _.extend(this, Backbone.Events);
         _.bindAll(this,
                   'handleInitInfo',
-                  'getUserId',
                   'setupViews',
                   'initEvents',
                   'handleGameStatus',
@@ -181,13 +177,13 @@ $(function() {
       },
 
       setupViews: function() {
-        this.playersColl = new PlayersCollection();
-        this.playersView = new PlayersView({ collection: this.playersColl });
-        this.playerInfo = new PlayerInfo({ getUserId: this.getUserId });
+        this.playersColl  = new PlayersCollection();
+        this.playersView  = new PlayersView({ collection: this.playersColl });
         this.gameControls = new GameControlsView();
-        this.gameInfo = new GameInfoView();
-        this.boardModel = new BoardModel();
-        this.boardView = new BoardView({ model: this.boardModel });
+        this.gameInfo     = new GameInfoView();
+        this.gameIntro    = new GameIntroView();
+        this.boardModel   = new BoardModel();
+        this.boardView    = new BoardView({ model: this.boardModel });
       },
 
       handleInitInfo: function(o) {
@@ -199,6 +195,8 @@ $(function() {
         }
         this.model.set({ 'userId': o.id });
         userPlayer = playersColl.get(o.id);
+        this.playersView.currUserId = o.id;
+
         if (userPlayer && o.name) {
           userPlayer.set({ "name": o.name });
         }
@@ -206,9 +204,14 @@ $(function() {
           playersColl.add({
             "id": o.id,
             "name": o.name,
-            "isUser": true
           });
         }
+
+        if (o.isLeader) {
+          this.leaderId = o.id;
+          this.gameControls.showControls();
+        }
+
         if (o.players) {
           playersColl.add(o.players);
         }
@@ -248,6 +251,14 @@ $(function() {
         socket.on('playerName', function(o) {
           _this.trigger('playerName', o);
         });
+
+        socket.on('newStrokeSub', function(o) {
+          _this.trigger('newStrokeSub', o);
+        });
+
+        $('.debugPlayers').click(function() {
+          socket.emit('printPlayers');
+        });
       },
 
       // BACKBONE EVENTS
@@ -262,19 +273,24 @@ $(function() {
           _this.toggleYourTurn(false);
         });
 
+        // PlayerView Events
         this.bind('playerDisconnect', this.playersView.handlePlayerDisconnect);
         this.bind('newPlayer',        this.playersView.handleNewPlayer);
         this.bind('playerName',       this.playersView.handlePlayerName);
+        this.gameIntro.bind('setName', this.playersView.handlePlayerName);
+
+        // Board Events
+        this.boardView.bind('newStrokePub', this.broadcastStroke);
+        this.bind('newStrokeSub', this.boardView.handleNewStroke);
+
+        // Controller Events
         this.bind('gameStatus', this.handleGameStatus);
         this.bind('gameStatus', this.gameInfo.setGameStatus);
         this.bind('gameStatus', this.gameControls.updateControls);
-        this.playerInfo.bind('setName', this.playersView.handlePlayerName);
+
+        // Game Control Events
         this.gameControls.bind('gameStatus', this.handleGameStatus);
         this.gameControls.bind('gameStatus', this.gameInfo.setGameStatus);
-      },
-
-      getUserId: function() {
-        return this.model.get('userId');
       },
 
       toggleYourTurn: function(state) {
@@ -299,7 +315,11 @@ $(function() {
           if (this.model.get('gameStatus') === gameStatus.IN_PROGRESS) { return; }
           this.model.set({ gameStarted: gameStatus.IN_PROGRESS });
         }
-      }
+      },
+
+      broadcastStroke: function(segments) {
+        socket.emit('newStrokePub', segments);
+      },
     };
     return controller.initialize();
   },

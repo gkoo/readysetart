@@ -1,21 +1,19 @@
-h1= title
+#intro
+  != partial('intro')
 #main
-  .content
+  h1= title
+  .board
     canvas#gameBoard(width=800, height=600)
     .boardControls
       input.clear(type="button", value="Clear Board")
+      input(type="button", value="Debug Server side Players", class="debugPlayers")
   .sidebar
     .gameInfo
       p.status Game has not started
-    .playerSetup
-      h2 Player information
-      label(for="nameField") What is your name?
-      input(type="text", id="nameField", name="nameField")
-      input(type="submit", id="nameSubmit", value="Enter name")
+    .playerInfo
       .playersList
         h2 Players (red means it's you)
         ul.players
-    .gameControls
     p.controls
       input(type="button", value="End Turn", disabled="disabled", class="endTurnBtn")
       input(type="button", value="Start Game", class="startGameBtn")
@@ -24,6 +22,7 @@ script(type-"text/javascript", src="/js/jquery-1.6.1.min.js")
 script(type-"text/javascript", src="/js/underscore.js")
 script(type-"text/javascript", src="/js/backbone.js")
 script(type-"text/javascript", src="/js/paper.js")
+script(type-"text/javascript", src="/js/cycle.js")
 script(type-"text/javascript", src="/js/board.js")
 script(type-"text/javascript", src="/js/player.js")
 script(type-"text/javascript", src="/js/gameStatus.js")

@@ -1,25 +1,25 @@
 var BoardModel = Backbone.Model.extend(),
-    BoardView,
-    segments;
+    BoardView;
 
 paper.install(window);
 paper.setup(document.getElementById('gameBoard'));
 
 BoardView = Backbone.View.extend({
-  el: $('.content'),
+  el: $('.board'),
   initialize: function() {
     this.canvas = this.$('#gameBoard');
+    _.extend(this, Backbone.Events);
     _.bindAll(this,
               'clearBoard',
               'mouseDown',
               'mouseDrag',
               'mouseUp');
+
     this.setupPaperCanvas();
   },
 
   events: {
-    'click .clear': 'clearBoard',
-    'click .redraw': 'doRedraw'
+    'click .clear': 'clearBoard'
   },
 
   clearBoard: function() {
@@ -27,16 +27,6 @@ BoardView = Backbone.View.extend({
     this.path.fillColor = '#fff';
     view.draw();
   },
-
-  /*
-  doRedraw: function() {
-    if (segments) {
-      this.path = new Path(segments);
-      this.path.strokeColor = '#000'
-      view.draw();
-    }
-  },
-  */
 
   mouseDown: function(evt) {
     if (!this.path) {
@@ -54,8 +44,23 @@ BoardView = Backbone.View.extend({
   },
 
   mouseUp: function(evt) {
+    var segment, segments = [];
     this.path.simplify(10);
-    segments = this.path.segments;
+    for (var i=0,len=this.path.segments.length; i<len; ++i) {
+      tmpSegment = this.path.segments[i];
+      segment = { 'point':      [tmpSegment.point.x, tmpSegment.point.y],
+                  'handleIn':   [tmpSegment.handleIn.x, tmpSegment.handleIn.y],
+                  'handleOut':  [tmpSegment.handleOut.x, tmpSegment.handleOut.y] };
+
+      segments.push(segment);
+    }
+    this.trigger('newStrokePub', segments);
+  },
+
+  handleNewStroke: function(segments) {
+    this.path = new Path(segments);
+    this.path.strokeColor = '#000';
+    view.draw();
   },
 
   setupPaperCanvas: function() {
@@ -64,7 +69,6 @@ BoardView = Backbone.View.extend({
 
     this.tool = new Tool();
 
-    console.log('registering mousedown');
     this.tool.onMouseDown = this.mouseDown;
     this.tool.onMouseDrag = this.mouseDrag;
     this.tool.onMouseUp   = this.mouseUp;

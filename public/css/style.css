@@ -1,6 +1,7 @@
 body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  font: 14px Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 a {
@@ -10,13 +11,46 @@ a {
 #main {
   width: 1000px;
 }
-.content {
+
+#intro, #intro .overlay, #intro .intro-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  text-align: center;
+}
+
+#intro .overlay {
+  background-color: #000;
+  z-index: 0;
+
+  -moz-opacity: 0.5;
+  -webkit-opacity: 0.5;
+  opacity: 0.5
+}
+
+#intro .intro-container {
+  z-index: 5;
+}
+
+#intro .content {
+  background-color: #fff;
+  border: 1px solid #000;
+  margin: 200px auto;
+  padding: 20px;
+  width: 600px;
+}
+
+#intro .content p {
+  margin: 5px 0;
+}
+
+.board {
   float: left;
   width: 800px;
-}
-.sidebar {
-  float: right;
-  width: 180px;
 }
 
 #gameBoard {
@@ -24,6 +58,16 @@ a {
   width: 800px;
   height: 600px;
 }
+
+.sidebar {
+  float: right;
+  width: 180px;
+}
+
+.sidebar .controls {
+  display: none;
+}
+
 .player.currUser {
   color: #f00;
 }

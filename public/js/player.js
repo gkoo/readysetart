@@ -13,7 +13,7 @@ else {
 // Properties:
 // @id
 // @name
-// @isUser
+// @isLeader
 // @type
 PlayerModel = Backbone.Model.extend({
   initialize: function() {
@@ -22,7 +22,13 @@ PlayerModel = Backbone.Model.extend({
 });
 
 PlayersCollection = Backbone.Collection.extend({
-  model: PlayerModel
+  model: PlayerModel,
+  getLeader: function() {
+    return this.find(function(player) {
+      console.log('foudn the leader');
+      return player.get('isLeader');
+    });
+  }
 });
 
 if (isServer) {
