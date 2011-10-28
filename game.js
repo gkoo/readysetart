@@ -1,4 +1,5 @@
 // TODO: teams
+// NOTE: maybe i should decompose out the syncing.
 
 var io       = require('socket.io'),
     _u       = require('underscore'),
@@ -25,6 +26,10 @@ GameController = function() {
     initialize: function() {
       _u.bindAll(this,
                  'sync',
+                 'create',
+                 'read',
+                 'update',
+                 'deleteModel',
                  'computeUserTeam');
       this.model = new GameModel();
       return this;
@@ -42,28 +47,20 @@ GameController = function() {
             yourId    = socket.id,
             yourName  = 'Anonymous',
             isLeader  = false,
+            yourTeam  = _this.computeUserTeam(yourId),
             initInfo  = { 'id':   yourId,
                           'name': yourName,
-                          'isLeader': false },
-            yourTeam;
+                          'isLeader': !players.length,
+                          'team': yourTeam };
 
-        yourTeam  = _this.computeUserTeam(yourId);
+        players.add(initInfo);
 
-        if (players.length) {
-          // send existing player info
-          initInfo.players = players.toJSON();
-        }
-        else {
-          isLeader = true;
-          initInfo.isLeader = isLeader;
-        }
+        socket.emit('userId', yourId);
 
-        socket.json.emit('initInfo', initInfo);
-
-        players.add({ 'id': yourId, 'name': yourName, 'isLeader': isLeader });
+        initInfo.team = yourTeam;
 
         // Sends to everyone except for new user
-        socket.broadcast.emit('newPlayer', yourId);
+        socket.broadcast.emit('newPlayer', initInfo);
 
         // LISTENERS
 
@@ -105,23 +102,69 @@ GameController = function() {
 
         socket.on('disconnect', function(data) {
           var i, len, player, id = socket.id;
+
           // Remove player from players array
           players.remove(players.get(id));
+
+          // Remove player from any teams (s)he is on.
+          _this.model.get('teams').removePlayer(id);
+
           socket.broadcast.emit('playerDisconnect', id);
           console.log(socket.id + ' disconnected');
         });
 
         socket.on('sync', function(data) {
-          _this.sync(data, socket)
+          _this.sync(data, socket);
         });
 
         pict.listen(socket);
 
       });
+
+    },
+
+    sync: function(data, socket) {
+      console.log('syncing:');
+      console.log(data);
+      if (data.method === 'create') {
+        this.create(data, socket);
+      }
+      if (data.method === 'read') {
+        this.read(data, socket);
+      }
+      if (data.method === 'update') {
+        this.update(data, socket);
+      }
+      if (data.method === 'delete') {
+        // "delete" is a reserved keyword
+        this.deleteModel(data, socket);
+      }
+    },
+
+    create: function(data, socket) {
+    },
+
+    read: function(data, socket) {
+      if (data.model.type === 'game') {
+        socket.emit('readResponse', { 'type': 'game',
+                                      'model': this.model });
+      }
+    },
+
+    update: function(data, socket) {
+      var player;
+      if (data.model.type === 'player') {
+        player = this.model.get('players').get(data.model.id);
+        player.set(data.model);
+        console.log('broadcasting playerUpdate');
+        socket.broadcast.emit('playerUpdate', data.model);
+      }
+    },
+
+    deleteModel: function(data, socket) {
     },
 
     computeUserTeam: function(userId) {
-
       var teams = this.model.get('teams'),
           minPlayerTeam = teams.getMinPlayerTeam(), // team with the fewest players
           players;
@@ -133,24 +176,16 @@ GameController = function() {
       return minPlayerTeam.id;
     },
 
-    sync: function(data, socket) {
-      var method = data.method,
-          model  = data.model,
-          player;
-
-      if (model.type === 'player') {
-        if (method !== 'update') {
-          console.log('[warning] method !== update during player sync');
-        }
-        player = this.model.get('players').get(model.id);
-        player.set(model);
-        socket.json.broadcast.emit('playerName', {
-          id: model.id,
-          name: model.name
-        });
+    updatePlayer: function(o, res) {
+      var player;
+      try {
+        player = this.model.get('players').get(o.id);
+        player.set(o);
+        res.send({ status: 'success' }, 200);
       }
-      else {
-        console.log('[error] no type found during sync');
+      catch (e) {
+        console.log(e);
+        res.send({ status: 'failure' }, 500);
       }
     }
   }

@@ -1,4 +1,5 @@
 // TODO: fix curruser
+
 var socket = io.connect();
 
 $(function() {
@@ -10,6 +11,7 @@ $(function() {
       _.bindAll(this, 'render');
       this.model.bind('change', this.render, this); // update the view every time the model changes.
       this.isCurrUser = o.isCurrUser;
+      this.render();
     },
 
     render: function() {
@@ -24,68 +26,96 @@ $(function() {
     }
   }),
 
-  PlayersView = Backbone.View.extend({
-    el: $('.playersList'),
+  TeamView = Backbone.View.extend({
+    className: 'team',
+
+    tagName: 'li',
 
     initialize: function(o) {
       var _this = this;
+      _.extend(this, Backbone.Events);
 
-      _.bindAll(this,
-                'render',
-                'handleNewPlayer',
-                'handlePlayerName',
-                'handlePlayerDisconnect');
-
-      this.collection = o.collection;
-      this.playerViews = [];
-
-      this.collection.bind('add', function(model) {
-        _this.playerViews.push(new PlayerView({ model: model,
-                                                isCurrUser: model.get('id') === this.currUserId }));
+      this.getPlayerById = o.getPlayerById;
+      this.render();
+      this.model.bind('change', function() {
         _this.render();
       });
     },
 
     render: function() {
-      var newContainer = $('<ul>').addClass('players');
-      _.each(this.playerViews, function(playerView) {
-        newContainer.append(playerView.render());
+      var teamNameEl    = $('<h3>').text(this.model.get('teamName')),
+          playersListEl = $('<ul>'),
+          players       = this.model.get('players'),
+          _this         = this,
+          el            = $(this.el);
+
+      _.each(players, function(playerId) {
+        var playerModel = _this.getPlayerById(playerId),
+            newPlayerView;
+        if (playerModel) {
+          newPlayerView = new PlayerView({ model: playerModel });
+          playersListEl.append(newPlayerView.el);
+        }
       });
-      this.$('.players').replaceWith(newContainer);
+
+      el.empty()
+        .append(teamNameEl, playersListEl);
+      return el;
+    }
+  }),
+
+  TeamsView = Backbone.View.extend({
+    initialize: function(o) {
+      var _this = this;
+
+      try {
+        _.bindAll(this, 'createTeamView', 'render');
+
+        this.getPlayerById = o.getPlayerById;
+
+        this.collection.bind('add', function(team) {
+          console.log('got add event on TeamsCollection');
+          _this.createTeamView(team);
+        });
+        this.collection.bind('change', function(team) {
+          console.log('got change event on TeamsCollection');
+          _this.render();
+        });
+
+        this.render();
+      }
+      catch(e) {
+        console.log(e);
+      }
+    },
+
+    render: function() {
+      var _this = this;
+      this.childViews = [];
+      this.el.empty();
+      this.collection.each(function(team) {
+        var newTeamView = new TeamView({ model: team,
+                                         getPlayerById: _this.getPlayerById });
+        _this.childViews.push(newTeamView);
+        _this.el.append(newTeamView.render());
+      });
       return this.el;
     },
 
-    // add a listing for a new player who has just
-    // connected
-    handleNewPlayer: function(id, name) {
-      var newPlayerModel  = new PlayerModel({ id:   id,
-                                              name: name ? name : 'Player ' + id }),
-          newPlayerView   = new PlayerView({ model: newPlayerModel });
+    createTeamView: function(teamModel) {
+      var newTeamView = new TeamView({ model: teamModel,
+                                       getPlayerById: this.getPlayerById });
+      this.el.append(newTeamView.el);
 
-      this.playerViews.push(newPlayerView);
-      $(this.el).children('.players').append(newPlayerView.render());
-    },
-
-    handlePlayerName: function(o) {
-      var playerView;
-      if (o && o.isSelf) {
-        o.id = this.currUserId;
+      if (!this.childViews) {
+        this.childViews = [];
       }
-      playerView = _.detect(this.playerViews, function(view) { return view.model.get('id') === o.id; });
-      playerView.model.set({ 'name': o.name });
-      if (o.sync) {
-        playerView.model.save();
-      }
-    },
 
-    handlePlayerDisconnect: function(id) {
-      this.$('#player-'+id).remove();
+      this.childViews.push(newTeamView);
     }
   }),
 
   GameControlsView = Backbone.View.extend({
-    el: $('.controls'),
-
     initialize: function() {
       _.extend(this, Backbone.Events);
       _.bindAll(this, 'doEndTurn',
@@ -120,9 +150,10 @@ $(function() {
     }
   }),
 
-  GameInfoView = Backbone.View.extend({
-    el: $('.gameInfo'),
+  ChatView = Backbone.View.extend({
+  }),
 
+  GameInfoView = Backbone.View.extend({
     initialize: function() {
       _.bindAll(this, 'setGameStatus');
     },
@@ -133,8 +164,6 @@ $(function() {
   }),
 
   GameIntroView = Backbone.View.extend({
-    el: $('#intro'),
-
     initialize: function() {
       _.bindAll(this, 'handleName');
       _.extend(this, Backbone.Events);
@@ -155,47 +184,67 @@ $(function() {
 
       this.el.hide();
     }
-  });
+  }),
 
-  GameModel = Backbone.Model.extend(),
+  GameModel = Backbone.Model.extend({
+    url: '/gamemodel',
+
+    initialize: function() {
+      this.set({ 'type': 'game' });
+    }
+  }),
 
   GameController = function() {
     var controller = {
       initialize: function() {
         _.extend(this, Backbone.Events);
         _.bindAll(this,
+                  'createResponse',
+                  'readResponse',
+                  'updateResponse',
+                  'deleteResponse',
                   'handleInitInfo',
                   'setupViews',
+                  'fetchModels',
                   'initEvents',
                   'handleGameStatus',
                   'setupSocketEvents');
         this.model = new GameModel();
-        this.setupViews();
         this.setupSocketEvents();
-        this.initEvents();
         return this;
       },
 
       setupViews: function() {
-        this.playersColl  = new PlayersCollection();
-        this.playersView  = new PlayersView({ collection: this.playersColl });
-        this.gameControls = new GameControlsView();
-        this.gameInfo     = new GameInfoView();
-        this.gameIntro    = new GameIntroView();
+        try {
+          this.teamsView    = new TeamsView({ el:            $('.teamsList'),
+                                              collection:    this.teamsColl,
+                                              getPlayerById: this.playersColl.getPlayerById });
+        } catch (e) {
+          console.log(e);
+        }
+
+        this.gameControls = new GameControlsView({ el: $('.controls') });
+        this.gameInfo     = new GameInfoView({ el: $('.gameInfo') });
+        this.gameIntro    = new GameIntroView({ el: $('#intro') });
         this.boardModel   = new BoardModel();
         this.boardView    = new BoardView({ model: this.boardModel });
+      },
+
+      fetchModels: function() {
+        var _this = this;
+        this.model.fetch();
       },
 
       handleInitInfo: function(o) {
         var userPlayer,
             playersColl = this.playersColl;
+
         if (typeof o.id === 'undefined') {
           console.log('No player ID found.');
           return;
         }
         this.model.set({ 'userId': o.id });
         userPlayer = playersColl.get(o.id);
-        this.playersView.currUserId = o.id;
 
         if (userPlayer && o.name) {
           userPlayer.set({ "name": o.name });
@@ -215,6 +264,11 @@ $(function() {
         if (o.players) {
           playersColl.add(o.players);
         }
+
+        // set up teams
+        if (o.teams) {
+          this.teamsColl.add(o.teams);
+        }
       },
 
       // SOCKET.IO EVENTS
@@ -222,12 +276,18 @@ $(function() {
         var _this = this;
 
         socket.on('connect', function() {
-          //var name = prompt('What is your name?');
+          _this.fetchModels();
         });
 
         socket.on('disconnect', function() {
           console.log('disconnect');
           //var name = prompt('What is your name?');
+        });
+
+        socket.on('readResponse', this.readResponse);
+
+        socket.on('userId', function(id) {
+          _this.model.set({ 'userId': id });
         });
 
         socket.on('initInfo', this.handleInitInfo);
@@ -238,6 +298,10 @@ $(function() {
 
         socket.on('gameStatus', function (o) {
           _this.trigger('gameStatus', o);
+        });
+
+        socket.on('playerUpdate', function(player) {
+          _this.trigger('playerUpdate', player);
         });
 
         socket.on('newPlayer', function(id) {
@@ -273,11 +337,18 @@ $(function() {
           _this.toggleYourTurn(false);
         });
 
-        // PlayerView Events
-        this.bind('playerDisconnect', this.playersView.handlePlayerDisconnect);
-        this.bind('newPlayer',        this.playersView.handleNewPlayer);
-        this.bind('playerName',       this.playersView.handlePlayerName);
-        this.gameIntro.bind('setName', this.playersView.handlePlayerName);
+        this.gameIntro.bind('setName', function(o) {
+          o.id = _this.model.get('userId');
+          _this.playersColl.setPlayerName(o);
+        });
+
+        // PlayerCollection Events
+        this.bind('newPlayer',    this.playersColl.handleNewPlayer);
+        this.bind('playerUpdate', this.playersColl.playerUpdate);
+        this.bind('playerName',   this.playersColl.setPlayerName);
+
+        // TeamCollection Events
+        this.bind('newPlayer', this.teamsColl.addPlayer);
 
         // Board Events
         this.boardView.bind('newStrokePub', this.broadcastStroke);
@@ -291,6 +362,45 @@ $(function() {
         // Game Control Events
         this.gameControls.bind('gameStatus', this.handleGameStatus);
         this.gameControls.bind('gameStatus', this.gameInfo.setGameStatus);
+      },
+
+      // SYNC RESPONSE HANDLERS
+      createResponse: function() {
+      },
+
+      // SYNC RESPONSE HANDLERS
+      readResponse: function(data) {
+        var players, teams, currUserId = this.model.get('userId');
+        if (!data || !data.type || !data.model) {
+          console.log('[err] couldn\'t detect data');
+          return;
+        }
+        if (data.type === 'game') {
+          try {
+            players = data.model.players;
+            teams = data.model.teams;
+            this.playersColl = new PlayersCollection(players);
+            this.teamsColl = new TeamCollection(teams);
+            this.setupViews();
+            this.initEvents();
+
+            // set leader
+            if (currUserId && this.playersColl.get(currUserId).get('isLeader')) {
+              this.gameControls.showControls();
+            }
+          }
+          catch (e) {
+            console.log(e);
+          }
+        }
+      },
+
+      // SYNC RESPONSE HANDLERS
+      updateResponse: function() {
+      },
+
+      // SYNC RESPONSE HANDLERS
+      deleteResponse: function() {
       },
 
       toggleYourTurn: function(state) {
@@ -319,7 +429,7 @@ $(function() {
 
       broadcastStroke: function(segments) {
         socket.emit('newStrokePub', segments);
-      },
+      }
     };
     return controller.initialize();
   },
@@ -327,9 +437,9 @@ $(function() {
   gameController = new GameController();
 
   Backbone.sync = function(method, model) {
-    socket.emit('sync', {
-      method: method,
-      model: model
-    });
+    console.log('syncing...');
+    console.log('method: ' + method);
+    console.log(model);
+    socket.emit('sync', { 'model': model, 'method': method });
   };
 });

@@ -16,6 +16,8 @@ else {
 // @isLeader
 // @type
 PlayerModel = Backbone.Model.extend({
+  url: '/player',
+
   initialize: function() {
     this.set({ 'type': 'player' });
   }
@@ -23,10 +25,62 @@ PlayerModel = Backbone.Model.extend({
 
 PlayersCollection = Backbone.Collection.extend({
   model: PlayerModel,
+
+  url: '/players',
+
+  initialize: function() {
+    _u.extend(this, Backbone.Events);
+    _u.bindAll(this,
+               'getPlayerById',
+               'setPlayerName',
+               'handleNewPlayer',
+               'playerUpdate');
+    //this.bind('add', function() {
+      //console.log('PLAYERS ADDED');
+    //});
+    this.bind('change', function() {
+      console.log('PLAYERS CHANGED');
+    });
+  },
+
+  getPlayerById: function(id) {
+    return this.find(function(player) {
+      return parseInt(player.id, 10) === parseInt(id, 10);
+    });
+  },
+
   getLeader: function() {
     return this.find(function(player) {
       return player.get('isLeader');
     });
+  },
+
+  setPlayerName: function(o) {
+    var playerModel = this.getPlayerById(o.id);
+    console.log("here");
+    if (playerModel) {
+      playerModel.save({ 'name': o.name });
+    }
+    else {
+      console.log("[err] couldn't find player. something is wrong.");
+    }
+  },
+
+  // add a listing for a new player who has just connected
+  // TODO: add a "add" binding to playerscollection to render a new playerview
+  handleNewPlayer: function(o) {
+    this.add(o);
+  },
+
+  playerUpdate: function(o) {
+    try {
+      console.log('updating player');
+      this.get(o.id).set(o);
+      console.log('updated player');
+    }
+    catch (e) {
+      console.log(e);
+    }
   }
 });
 
