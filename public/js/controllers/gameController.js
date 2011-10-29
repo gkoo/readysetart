@@ -24,9 +24,17 @@ var GameController = function(socket) {
       // as a result of the fetch. We just need to populate
       // the views with them now.
       try {
+        // I decided I want to implement free-for-all first,
+        // since it will be easier. If I have time, I'll come
+        // back to teams in the future.
+        this.playersView = new PlayersView({ el: $('.playerInfo'),
+                                             collection: this.playersColl,
+                                             getCurrPlayer: this.getCurrPlayer });
+        /*
         this.teamsView    = new TeamsView({ el:            $('.teamsList'),
                                             collection:    this.teamsColl,
                                             getPlayerById: this.getPlayerById });
+        */
       } catch (e) {
         console.log(e);
       }
@@ -34,8 +42,11 @@ var GameController = function(socket) {
       this.gameControls = new GameControlsView({ el: $('.controls') });
       this.gameInfo     = new GameInfoView({ el: $('.gameInfo') });
       this.gameIntro    = new GameIntroView({ el: $('#intro') });
-      this.boardModel   = new BoardModel();
-      this.boardView    = new BoardView({ model: this.boardModel });
+      this.boardModel   = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
+      this.boardView    = new BoardView({ el: $('.board'),
+                                          model: this.boardModel });
+
+      this.boardModel.getCurrPlayer = this.getCurrPlayer;
     },
 
     setupGameState: function(gameData) {
@@ -43,12 +54,13 @@ var GameController = function(socket) {
 
       this.playersColl = new PlayersCollection(gameData.players);
       this.currPlayer = this.playersColl.get(this.userId);
+
       playerHelperFns  = { 'currPlayer': this.currPlayer,
                            'getPlayerById': this.getPlayerById };
-      teams = _.extend(gameData.teams, playerHelperFns),
+      // teams = _.extend(gameData.teams, playerHelperFns),
       chat  = _.extend(gameData.chat, playerHelperFns);
 
-      this.teamsColl      = new TeamCollection(teams);
+      // this.teamsColl      = new TeamCollection(teams);
       this.chatController = new ChatController(chat);
       this.setupViews();
       this.initEvents();
@@ -85,8 +97,8 @@ var GameController = function(socket) {
         _this.trigger('playerUpdate', player);
       });
 
-      socket.on('newPlayer', function(id) {
-        _this.trigger('newPlayer', id);
+      socket.on('newPlayer', function(o) {
+        _this.trigger('newPlayer', o);
       });
 
       socket.on('playerDisconnect', function(id) {
@@ -99,10 +111,6 @@ var GameController = function(socket) {
 
       socket.on('newStrokeSub', function(o) {
         _this.trigger('newStrokeSub', o);
-      });
-
-      $('.debugPlayers').click(function() {
-        socket.emit('printPlayers');
       });
     },
 
@@ -118,8 +126,9 @@ var GameController = function(socket) {
         _this.toggleYourTurn(false);
       });
 
-      this.gameIntro.bind('setName', function(o) {
-        o.id = _this.userId;
+      this.gameIntro.bind('setName', function(name) {
+        var o = { id: _this.userId,
+                  name: name };
         _this.playersColl.setPlayerName(o);
       });
 
@@ -127,9 +136,10 @@ var GameController = function(socket) {
       this.bind('newPlayer',    this.playersColl.handleNewPlayer);
       this.bind('playerUpdate', this.playersColl.playerUpdate);
       this.bind('playerName',   this.playersColl.setPlayerName);
+      this.bind('playerDisconnect', this.playersColl.playerDisconnect);
 
       // TeamCollection Events
-      this.bind('newPlayer', this.teamsColl.addPlayer);
+      //this.bind('newPlayer', this.teamsColl.addPlayer);
 
       // Board Events
       this.boardView.bind('newStrokePub', this.broadcastStroke);

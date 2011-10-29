@@ -13,11 +13,7 @@ var GameIntroView = Backbone.View.extend({
     evt.preventDefault();
     evt.stopPropagation();
 
-    this.trigger('setName', {
-      isSelf: true,
-      name: this.$('.nameField').val(),
-      sync: true
-    });
+    this.trigger('setName', this.$('.nameField').val());
 
     this.el.hide();
     this.unbind();

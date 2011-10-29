@@ -6,34 +6,14 @@
     canvas#gameBoard(width=800, height=600)
     .boardControls
       input.clear(type="button", value="Clear Board")
-      input(type="button", value="Debug Server side Players", class="debugPlayers")
   .sidebar
     .gameInfo
       p.status Game has not started
     .playerInfo
-      ol.teamsList
+      h1 Players
+      ul.playerList
     p.controls
       input(type="button", value="End Turn", disabled="disabled", class="endTurnBtn")
       input(type="button", value="Start Game", class="startGameBtn")
     != partial('chat')
-script(type="text/javascript", src="/socket.io/socket.io.js")
-script(type="text/javascript", src="/js/jquery-1.6.1.min.js")
-script(type="text/javascript", src="/js/underscore.js")
-script(type="text/javascript", src="/js/backbone.js")
-script(type="text/javascript", src="/js/paper.js")
-script(type="text/javascript", src="/js/models/boardModel.js")
-script(type="text/javascript", src="/js/models/chatModel.js")
-script(type="text/javascript", src="/js/models/gameModel.js")
-script(type="text/javascript", src="/js/models/playerModel.js")
-script(type="text/javascript", src="/js/models/teamModel.js")
-script(type="text/javascript", src="/js/views/boardView.js")
-script(type="text/javascript", src="/js/views/chatView.js")
-script(type="text/javascript", src="/js/views/gameControlsView.js")
-script(type="text/javascript", src="/js/views/gameInfoView.js")
-script(type="text/javascript", src="/js/views/gameIntroView.js")
-script(type="text/javascript", src="/js/views/playerView.js")
-script(type="text/javascript", src="/js/views/teamsView.js")
-script(type="text/javascript", src="/js/controllers/chatController.js")
-script(type="text/javascript", src="/js/controllers/gameController.js")
-script(type="text/javascript", src="/js/gameStatus.js")
-script(type="text/javascript", src="/js/client.js")
+!= partial('scripts')

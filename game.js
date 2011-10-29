@@ -7,16 +7,13 @@ var socketio = require('socket.io'),
     Backbone = require('backbone'),
 
     playerLib         = require('./public/js/models/playerModel.js'),
-    teamLib           = require('./public/js/models/teamModel.js'),
+    //teamLib           = require('./public/js/models/teamModel.js'),
     statusLib         = require('./public/js/gameStatus.js').GameStatus,
     gameStatus        = new statusLib();
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
-    var teamCollection = new teamLib.TeamCollection();
-    teamCollection.setNumTeams(2);
     this.set({ 'players':    new playerLib.PlayersCollection(),
-               'teams':      teamCollection,
                'chat':       new chatLib.ChatModel(),
                'gameStatus': gameStatus.NOT_STARTED });
   },
@@ -30,8 +27,7 @@ GameController = function() {
                  'create',
                  'read',
                  'update',
-                 'deleteModel',
-                 'computeUserTeam');
+                 'deleteModel');
       this.model = new GameModel();
       return this;
     },
@@ -49,17 +45,15 @@ GameController = function() {
             yourId    = socket.id,
             yourName  = 'Anonymous',
             isLeader  = false,
-            yourTeam  = _this.computeUserTeam(yourId),
+            //yourTeam  = _this.computeUserTeam(yourId),
             initInfo  = { 'id':   yourId,
                           'name': yourName,
-                          'isLeader': !players.length,
-                          'team': yourTeam };
+                          'isLeader': !players.length };
+                          //'team': yourTeam };
 
         players.add(initInfo);
 
         socket.emit('userId', yourId);
-
-        initInfo.team = yourTeam;
 
         // Sends to everyone except for new user
         socket.broadcast.emit('newPlayer', initInfo);
@@ -109,7 +103,7 @@ GameController = function() {
           players.remove(players.get(id));
 
           // Remove player from any teams (s)he is on.
-          _this.model.get('teams').removePlayer(id);
+          // _this.model.get('teams').removePlayer(id);
 
           socket.broadcast.emit('playerDisconnect', id);
           console.log(socket.id + ' disconnected');
@@ -166,6 +160,7 @@ GameController = function() {
     deleteModel: function(data, socket) {
     },
 
+    /*
     computeUserTeam: function(userId) {
       var teams = this.model.get('teams'),
           minPlayerTeam = teams.getMinPlayerTeam(), // team with the fewest players
@@ -177,6 +172,7 @@ GameController = function() {
       console.log('added player ' + userId + ' to team ' + minPlayerTeam.id);
       return minPlayerTeam.id;
     },
+    */
 
     updatePlayer: function(o, res) {
       var player;

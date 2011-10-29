@@ -33,7 +33,8 @@ PlayersCollection = Backbone.Collection.extend({
     _u.bindAll(this,
                'setPlayerName',
                'handleNewPlayer',
-               'playerUpdate');
+               'playerUpdate',
+               'playerDisconnect');
     //this.bind('add', function() {
       //console.log('PLAYERS ADDED');
     //});
@@ -73,6 +74,17 @@ PlayersCollection = Backbone.Collection.extend({
     }
     catch (e) {
       console.log(e);
+    }
+  },
+
+  playerDisconnect: function(id) {
+    var playerToRemove = this.get(id);
+    console.log('playerdisconnect');
+    if (playerToRemove) {
+      this.remove(playerToRemove);
+    }
+    else {
+      console.log('[err] couldn\'t find player to remove');
     }
   }
 });
