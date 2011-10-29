@@ -1,13 +1,13 @@
-// TODO: teams
 // NOTE: maybe i should decompose out the syncing.
 
-var io       = require('socket.io'),
+var socketio = require('socket.io'),
     _u       = require('underscore'),
     pict     = require('./pictionary.js'),
+    chatLib  = require('./chat.js'),
     Backbone = require('backbone'),
 
-    playerLib         = require('./public/js/player.js'),
-    teamLib           = require('./public/js/team.js'),
+    playerLib         = require('./public/js/models/playerModel.js'),
+    teamLib           = require('./public/js/models/teamModel.js'),
     statusLib         = require('./public/js/gameStatus.js').GameStatus,
     gameStatus        = new statusLib();
 
@@ -17,6 +17,7 @@ GameModel = Backbone.Model.extend({
     teamCollection.setNumTeams(2);
     this.set({ 'players':    new playerLib.PlayersCollection(),
                'teams':      teamCollection,
+               'chat':       new chatLib.ChatModel(),
                'gameStatus': gameStatus.NOT_STARTED });
   },
 }),
@@ -37,11 +38,12 @@ GameController = function() {
 
     // just proxy to socket.io
     listen: function(app) {
-      var _this = this;
+      var _this = this,
+          chat;
 
-      io = io.listen(app);
+      io = socketio.listen(app);
       io.set('transports', ['htmlfile', 'xhr-polling', 'jsonp-polling']);
-      io.sockets.on('connection', function(socket) {
+      io.of('/game').on('connection', function(socket) {
 
         var players   = _this.model.get('players'),
             yourId    = socket.id,
@@ -121,11 +123,11 @@ GameController = function() {
 
       });
 
+      chat = this.model.get('chat');
+      chat.listen(io);
     },
 
     sync: function(data, socket) {
-      console.log('syncing:');
-      console.log(data);
       if (data.method === 'create') {
         this.create(data, socket);
       }

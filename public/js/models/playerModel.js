@@ -31,7 +31,6 @@ PlayersCollection = Backbone.Collection.extend({
   initialize: function() {
     _u.extend(this, Backbone.Events);
     _u.bindAll(this,
-               'getPlayerById',
                'setPlayerName',
                'handleNewPlayer',
                'playerUpdate');
@@ -43,12 +42,6 @@ PlayersCollection = Backbone.Collection.extend({
     });
   },
 
-  getPlayerById: function(id) {
-    return this.find(function(player) {
-      return parseInt(player.id, 10) === parseInt(id, 10);
-    });
-  },
-
   getLeader: function() {
     return this.find(function(player) {
       return player.get('isLeader');
@@ -56,9 +49,9 @@ PlayersCollection = Backbone.Collection.extend({
   },
 
   setPlayerName: function(o) {
-    var playerModel = this.getPlayerById(o.id);
-    console.log("here");
+    var playerModel = this.get(o.id);
     if (playerModel) {
+      console.log('saving name ' + o.name);
       playerModel.save({ 'name': o.name });
     }
     else {

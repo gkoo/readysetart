@@ -1,5 +1,4 @@
-var BoardModel = Backbone.Model.extend(),
-    BoardView;
+var BoardView;
 
 paper.install(window);
 paper.setup(document.getElementById('gameBoard'));
