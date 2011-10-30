@@ -1,4 +1,4 @@
-var _u, Backbone, isServer = false;
+var _u, Backbone, PlayerModel, PlayersCollection, isServer = false;
 
 // Set up dependencies.
 if (typeof module !== 'undefined') {

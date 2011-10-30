@@ -5,11 +5,12 @@ var socketio = require('socket.io'),
     pict     = require('./pictionary.js'),
     chatLib  = require('./chat.js'),
     Backbone = require('backbone'),
+    WordBase = require('./wordbase/wordbase.js');
 
     playerLib         = require('./public/js/models/playerModel.js'),
     //teamLib           = require('./public/js/models/teamModel.js'),
     statusLib         = require('./public/js/gameStatus.js').GameStatus,
-    gameStatus        = new statusLib();
+    gameStatus        = new statusLib(),
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
@@ -26,9 +27,9 @@ GameController = function() {
                  'sync',
                  'create',
                  'read',
-                 'update',
-                 'deleteModel');
+                 'update');
       this.model = new GameModel();
+      this.wordBase = new WordBase();
       return this;
     },
 
@@ -155,9 +156,6 @@ GameController = function() {
         console.log('broadcasting playerUpdate');
         socket.broadcast.emit('playerUpdate', data.model);
       }
-    },
-
-    deleteModel: function(data, socket) {
     },
 
     /*
