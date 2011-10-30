@@ -7,16 +7,15 @@ var socketio = require('socket.io'),
     Backbone = require('backbone'),
     WordBase = require('./wordbase/wordbase.js');
 
-    playerLib         = require('./public/js/models/playerModel.js'),
-    //teamLib           = require('./public/js/models/teamModel.js'),
-    statusLib         = require('./public/js/gameStatus.js').GameStatus,
-    gameStatus        = new statusLib(),
+    playerLib     = require('./public/js/models/playerModel.js'),
+    //teamLib     = require('./public/js/models/teamModel.js'),
+    gameStatusLib = require('./public/js/models/gameStatusModel.js'),
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
     this.set({ 'players':    new playerLib.PlayersCollection(),
                'chat':       new chatLib.ChatModel(),
-               'gameStatus': gameStatus.NOT_STARTED });
+               'gameStatus':   new gameStatusLib.GameStatusModel() });
   },
 }),
 
@@ -66,9 +65,11 @@ GameController = function() {
         });
 
         socket.on('gameStatus', function (status) {
-          var leader = players.getLeader();
+          var leader = players.getLeader(),
+              gameStatusModel;
           if (socket.id === leader.get('id')) {
-            _this.model.set({ 'gameStatus': status });
+            gameStatusModel = _this.model.get('gameStatus');
+            gameStatusModel.set({ 'gameStatus': status });
             socket.broadcast.emit('gameStatus', status);
           }
           else {

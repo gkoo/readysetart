@@ -20,16 +20,15 @@ var GameController = function(socket) {
     },
 
     setupViews: function() {
-      // At this point, the models should be set up already
-      // as a result of the fetch. We just need to populate
-      // the views with them now.
+      // At this point, the models should be set up already as a result of the
+      // fetch. We just need to populate the views with them now.
       try {
-        // I decided I want to implement free-for-all first,
-        // since it will be easier. If I have time, I'll come
-        // back to teams in the future.
+        // I decided I want to implement free-for-all first, since it will be
+        // easier. If I have time, I'll come back to teams in the future.
         this.playersView = new PlayersView({ el: $('.playerInfo'),
                                              collection: this.playersColl,
                                              getCurrPlayer: this.getCurrPlayer });
+
         /*
         this.teamsView    = new TeamsView({ el:            $('.teamsList'),
                                             collection:    this.teamsColl,
@@ -39,12 +38,13 @@ var GameController = function(socket) {
         console.log(e);
       }
 
-      this.gameControls = new GameControlsView({ el: $('.controls') });
-      this.gameInfo     = new GameInfoView({ el: $('.gameInfo') });
-      this.gameIntro    = new GameIntroView({ el: $('#intro') });
-      this.boardModel   = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
-      this.boardView    = new BoardView({ el: $('.board'),
-                                          model: this.boardModel });
+      this.gameControls   = new GameControlsView({ el: $('.controls') });
+      this.gameStatusView = new GameStatusView({ el: $('.gameInfo'),
+                                                 model: this.gameStatus });
+      this.gameIntro      = new GameIntroView({ el: $('#intro') });
+      this.boardModel     = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
+      this.boardView      = new BoardView({ el: $('.board'),
+                                            model: this.boardModel });
 
       this.boardModel.getCurrPlayer = this.getCurrPlayer;
     },
@@ -52,6 +52,7 @@ var GameController = function(socket) {
     setupGameState: function(gameData) {
       var playerHelperFns, teams, chat;
 
+      this.gameStatus = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
       this.currPlayer = this.playersColl.get(this.userId);
 
@@ -147,12 +148,12 @@ var GameController = function(socket) {
 
       // Controller Events
       this.bind('gameStatus', this.handleGameStatus);
-      this.bind('gameStatus', this.gameInfo.setGameStatus);
+      this.bind('gameStatus', this.gameStatus.startGame);
       this.bind('gameStatus', this.gameControls.updateControls);
 
       // Game Control Events
       this.gameControls.bind('gameStatus', this.handleGameStatus);
-      this.gameControls.bind('gameStatus', this.gameInfo.setGameStatus);
+      this.gameControls.bind('gameStatus', this.gameStatus.startGame);
     },
 
     // SYNC RESPONSE HANDLERS
@@ -212,10 +213,10 @@ var GameController = function(socket) {
     },
 
     handleGameStatus: function(status) {
-      if (status === gameStatus.IN_PROGRESS) {
+      if (status === GameStatusEnum.IN_PROGRESS) {
         // fix this function! move logic to a view.
-        if (this.model.get('gameStatus') === gameStatus.IN_PROGRESS) { return; }
-        this.model.set({ gameStarted: gameStatus.IN_PROGRESS });
+        if (this.model.get('gameStatus') === GameStatusEnum.IN_PROGRESS) { return; }
+        this.model.set({ gameStarted: GameStatusEnum.IN_PROGRESS });
       }
     },
 

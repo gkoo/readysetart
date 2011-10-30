@@ -64,6 +64,10 @@ a {
   width: 180px;
 }
 
+.sidebar .gameInfo {
+  display: none;
+}
+
 .sidebar .controls {
   display: none;
 }
