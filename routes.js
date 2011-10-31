@@ -25,7 +25,7 @@ app.configure('production', function(){
 
 app.get('/', function(req, res){
   res.render('index', {
-    title: 'Ready, Set, Draw!'
+    title: 'Ready, Set, Art!'
   });
 });
 

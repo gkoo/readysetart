@@ -34,13 +34,8 @@ PlayersCollection = Backbone.Collection.extend({
                'setPlayerName',
                'handleNewPlayer',
                'playerUpdate',
-               'playerDisconnect');
-    //this.bind('add', function() {
-      //console.log('PLAYERS ADDED');
-    //});
-    this.bind('change', function() {
-      console.log('PLAYERS CHANGED');
-    });
+               'playerDisconnect',
+               'setCurrentArtist');
   },
 
   getLeader: function() {
@@ -86,7 +81,13 @@ PlayersCollection = Backbone.Collection.extend({
     else {
       console.log('[err] couldn\'t find player to remove');
     }
-  }
+  },
+
+  setCurrentArtist: function() {
+    var leader = this.getLeader();
+    this.currArtist = leader;
+    return leader.id;
+  },
 });
 
 if (isServer) {

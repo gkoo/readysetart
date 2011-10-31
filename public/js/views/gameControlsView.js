@@ -4,6 +4,8 @@ var GameControlsView = Backbone.View.extend({
     _.bindAll(this, 'doEndTurn',
                     'doStartGame',
                     'updateControls');
+    this.startBtn = $('.startGameBtn').removeAttr('disabled');
+    this.endBtn = $('.endTurnBtn').attr('disabled', 'disabled');
   },
 
   events: {
@@ -16,15 +18,15 @@ var GameControlsView = Backbone.View.extend({
   },
 
   doStartGame: function() {
-    socket.emit('gameStatus', gameStatus.IN_PROGRESS);
-    this.trigger('gameStatus', gameStatus.IN_PROGRESS);
-    this.updateControls(gameStatus.IN_PROGRESS);
+    socket.emit('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
+    this.trigger('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
+    this.updateControls(GameStatusEnum.IN_PROGRESS);
   },
 
-  updateControls: function(status) {
-    if (status == gameStatus.IN_PROGRESS) {
-      this.$('.startGameBtn').attr('disabled', 'disabled');
-      this.$('.endTurnBtn').removeAttr('disabled');
+  updateControls: function(o) {
+    if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
+      this.startBtn.attr('disabled', 'disabled');
+      this.endBtn.removeAttr('disabled');
     }
   },
 

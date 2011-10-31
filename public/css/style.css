@@ -53,6 +53,16 @@ a {
   width: 800px;
 }
 
+.board .clearBtn {
+  float: left;
+}
+
+.wordToDraw {
+  display: none;
+  float: left;
+  padding-left: 20px;
+}
+
 #gameBoard {
   border: 1px solid #000;
   width: 800px;

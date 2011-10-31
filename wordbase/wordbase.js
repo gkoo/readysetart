@@ -1,5 +1,6 @@
 var fs = require('fs'),
-    _u = require('underscore');
+    _u = require('underscore'),
+    Backbone = require('backbone');
 
 // Surprisingly enough, the word list came from here:
 // http://faqs.ign.com/articles/648/648569p1.html
@@ -8,6 +9,8 @@ module.exports = function() {
   var wordList, usedWords, wordbase, filename = './wordbase/words.txt';
 
   this.initialize = function() {
+    _u.bindAll(this, 'getUnusedWord', 'checkGuesses');
+    _u.extend(this, Backbone.Events);
     this.resetUsedWords();
     this.getWordList();
   };
@@ -47,13 +50,24 @@ module.exports = function() {
       wordList = usedWords;
       usedWords = [];
     }
-    console.log('wordList.length: ' + wordList.length);
-    console.log('usedWords.length: ' + usedWords.length);
+    //word = 'banana';
+    this.currentWord = word;
     return word;
   };
 
   this.resetUsedWords = function() {
     usedWords = [];
+  };
+
+  this.checkGuesses = function(messages) {
+    var currentWord = this.currentWord, _this = this;
+    if (currentWord) {
+      _u.each(messages, function(newMessage) {
+        if (currentWord && newMessage.message.toLowerCase() === currentWord.toLowerCase()) {
+          _this.trigger('correctGuess', newMessage);
+        }
+      });
+    }
   };
 
   this.initialize();

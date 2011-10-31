@@ -12,6 +12,7 @@ MessageCollection = Backbone.Collection.extend({
 
 module.exports.ChatModel = Backbone.Model.extend({
   initialize: function(o) {
+    _u.extend(this, Backbone.Events);
     _u.bindAll(this,
                'addMessages',
                'listen');
@@ -47,6 +48,7 @@ module.exports.ChatModel = Backbone.Model.extend({
         }
         else {
           _this.addMessages(newMessages);
+          _this.trigger('newMessages', newMessages);
           socket.broadcast.emit('incomingMessages', newMessages);
         }
       });

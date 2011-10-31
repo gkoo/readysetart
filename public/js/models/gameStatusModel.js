@@ -18,7 +18,8 @@ GameStatusEnum = {
 
 GameStatusModel = Backbone.Model.extend({
   initialize: function() {
-    _u.bindAll(this, 'startGame');
+    _u.bindAll(this,
+               'handleGameStatus');
     this.set({ 'type': 'gameStatus' });
   },
 
@@ -32,8 +33,15 @@ GameStatusModel = Backbone.Model.extend({
     }
   },
 
-  startGame: function() {
-    this.set({ 'gameStatus': GameStatusEnum.IN_PROGRESS });
+  handleGameStatus: function(o) {
+    try {
+      console.log('o');
+      console.log(o);
+      this.set(o);
+    }
+    catch(e) {
+      console.log(e);
+    }
   },
 });
 

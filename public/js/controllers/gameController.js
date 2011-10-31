@@ -6,13 +6,9 @@ var GameController = function(socket) {
                 'setupViews',
                 'setupGameState',
                 'initEvents',
-                'createResponse',
                 'readResponse',
-                'updateResponse',
-                'deleteResponse',
                 'getCurrPlayer',
                 'getPlayerById',
-                'handleGameStatus',
                 'setupSocketEvents');
       this.model = new GameModel();
       this.setupSocketEvents();
@@ -40,7 +36,8 @@ var GameController = function(socket) {
 
       this.gameControls   = new GameControlsView({ el: $('.controls') });
       this.gameStatusView = new GameStatusView({ el: $('.gameInfo'),
-                                                 model: this.gameStatus });
+                                                 model: this.gameStatus,
+                                                 getPlayerById: this.getPlayerById });
       this.gameIntro      = new GameIntroView({ el: $('#intro') });
       this.boardModel     = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
       this.boardView      = new BoardView({ el: $('.board'),
@@ -52,14 +49,14 @@ var GameController = function(socket) {
     setupGameState: function(gameData) {
       var playerHelperFns, teams, chat;
 
-      this.gameStatus = new GameStatusModel(gameData.gameStatus);
+      this.gameStatus  = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
-      this.currPlayer = this.playersColl.get(this.userId);
+      this.currPlayer  = this.playersColl.get(this.userId);
 
       playerHelperFns  = { 'currPlayer': this.currPlayer,
                            'getPlayerById': this.getPlayerById };
       // teams = _.extend(gameData.teams, playerHelperFns),
-      chat  = _.extend(gameData.chat, playerHelperFns);
+      chat = _.extend(gameData.chat, playerHelperFns);
 
       // this.teamsColl      = new TeamCollection(teams);
       this.chatController = new ChatController(chat);
@@ -113,6 +110,18 @@ var GameController = function(socket) {
       socket.on('newStrokeSub', function(o) {
         _this.trigger('newStrokeSub', o);
       });
+
+      socket.on('wordToDraw', function(word) {
+        _this.trigger('wordToDraw', word);
+      });
+
+      socket.on('clearBoard', function() {
+        _this.trigger('clearBoard');
+      });
+
+      socket.on('correctGuess', function(o) {
+        _this.trigger('correctGuess', o);
+      });
     },
 
     // BACKBONE EVENTS
@@ -144,20 +153,18 @@ var GameController = function(socket) {
 
       // Board Events
       this.boardView.bind('newStrokePub', this.broadcastStroke);
+      this.boardView.bind('clearBoard', this.broadcastClearBoard);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
+      this.bind('clearBoard', this.boardView.doClear);
+      this.bind('wordToDraw', this.boardView.updateWordToDraw);
 
       // Controller Events
-      this.bind('gameStatus', this.handleGameStatus);
-      this.bind('gameStatus', this.gameStatus.startGame);
+      this.bind('gameStatus', this.gameStatus.handleGameStatus);
       this.bind('gameStatus', this.gameControls.updateControls);
+      this.bind('correctGuess', this.notifyCorrectGuess);
 
       // Game Control Events
-      this.gameControls.bind('gameStatus', this.handleGameStatus);
-      this.gameControls.bind('gameStatus', this.gameStatus.startGame);
-    },
-
-    // SYNC RESPONSE HANDLERS
-    createResponse: function() {
+      this.gameControls.bind('gameStatus', this.gameStatus.handleGameStatus);
     },
 
     readResponse: function(data) {
@@ -180,12 +187,6 @@ var GameController = function(socket) {
           console.log(e);
         }
       }
-    },
-
-    updateResponse: function() {
-    },
-
-    deleteResponse: function() {
     },
 
     getPlayerById: function(id) {
@@ -212,16 +213,16 @@ var GameController = function(socket) {
       }
     },
 
-    handleGameStatus: function(status) {
-      if (status === GameStatusEnum.IN_PROGRESS) {
-        // fix this function! move logic to a view.
-        if (this.model.get('gameStatus') === GameStatusEnum.IN_PROGRESS) { return; }
-        this.model.set({ gameStarted: GameStatusEnum.IN_PROGRESS });
-      }
-    },
-
     broadcastStroke: function(segments) {
       socket.emit('newStrokePub', segments);
+    },
+
+    broadcastClearBoard: function(segments) {
+      socket.emit('clearBoard');
+    },
+
+    notifyCorrectGuess: function(o) {
+      alert([o.name, 'guessed correctly:', o.message].join(' '));
     }
   };
   return controller.initialize(socket);

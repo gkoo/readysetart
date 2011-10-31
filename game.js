@@ -1,4 +1,9 @@
 // NOTE: maybe i should decompose out the syncing.
+//
+// Plan for picking drawer. At time of game start, pre-calculate
+// schedule of drawers. This way, if people come and go during
+// the middle of the game, they can still participate and guess,
+// but it won't mess up who gets to draw, etc.
 
 var socketio = require('socket.io'),
     _u       = require('underscore'),
@@ -7,9 +12,10 @@ var socketio = require('socket.io'),
     Backbone = require('backbone'),
     WordBase = require('./wordbase/wordbase.js');
 
-    playerLib     = require('./public/js/models/playerModel.js'),
-    //teamLib     = require('./public/js/models/teamModel.js'),
-    gameStatusLib = require('./public/js/models/gameStatusModel.js'),
+    playerLib      = require('./public/js/models/playerModel.js'),
+    //teamLib      = require('./public/js/models/teamModel.js'),
+    gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
+    GameStatusEnum = gameStatusLib.GameStatusEnum,
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
@@ -22,13 +28,30 @@ GameModel = Backbone.Model.extend({
 GameController = function() {
   var controller = {
     initialize: function() {
+      var chatModel, _this = this;
       _u.bindAll(this,
+                 'sendNextWord',
                  'sync',
-                 'create',
                  'read',
                  'update');
+
       this.model = new GameModel();
       this.wordBase = new WordBase();
+
+      chatModel = this.model.get('chat');
+      chatModel.bind('newMessages', function(messages) {
+        var currArtistId = -1;
+        if (_this.model.get('players').currArtist) {
+          currArtistId = _this.model.get('players').currArtist.id;
+        }
+        else {
+          return;
+        }
+        if (messages[0].sender !== currArtistId) {
+          // filter out any "guesses" from the artist
+          _this.wordBase.checkGuesses(messages);
+        }
+      });
       return this;
     },
 
@@ -46,10 +69,13 @@ GameController = function() {
             yourName  = 'Anonymous',
             isLeader  = false,
             //yourTeam  = _this.computeUserTeam(yourId),
-            initInfo  = { 'id':   yourId,
-                          'name': yourName,
-                          'isLeader': !players.length };
-                          //'team': yourTeam };
+            initInfo,
+            gameStatusModel = _this.model.get('gameStatus');
+
+        initInfo= { 'id':          yourId,
+                    'name':        yourName,
+                    'isLeader':    !players.length };
+                    //'team': yourTeam };
 
         players.add(initInfo);
 
@@ -64,16 +90,24 @@ GameController = function() {
           console.log('endTurn');
         });
 
-        socket.on('gameStatus', function (status) {
+        socket.on('gameStatus', function (o) {
           var leader = players.getLeader(),
-              gameStatusModel;
+              status = o.gameStatus,
+              currArtistId = _this.model.get('players').setCurrentArtist(),
+              gameStatusModel,
+              newStatus;
+
           if (socket.id === leader.get('id')) {
             gameStatusModel = _this.model.get('gameStatus');
-            gameStatusModel.set({ 'gameStatus': status });
-            socket.broadcast.emit('gameStatus', status);
+            newStatus = { 'gameStatus': status,
+                          'currArtist': currArtistId }
+            gameStatusModel.set(newStatus);
+            socket.broadcast.emit('gameStatus', newStatus);
+            socket.emit('gameStatus', newStatus);
+            _this.sendNextWord();
           }
           else {
-            console.log('tried to change game status but wasn\'t the leader');
+            console.warn('tried to change game status but wasn\'t the leader');
           }
         });
 
@@ -115,6 +149,12 @@ GameController = function() {
           _this.sync(data, socket);
         });
 
+        _this.wordBase.bind('correctGuess', function(o) {
+          console.log('emitting correctGuess');
+          console.log('\n\n\nmy id is: ' + socket.id);
+          socket.emit('correctGuess', o);
+        });
+
         pict.listen(socket);
 
       });
@@ -123,23 +163,22 @@ GameController = function() {
       chat.listen(io);
     },
 
+    sendNextWord: function() {
+      var nextWord        = this.wordBase.getUnusedWord(),
+          gameStatusModel = this.model.get('gameStatus'),
+          currArtistId    = gameStatusModel.get('currArtist');
+
+      // Send currArtist the first word.
+      io.of('/game').socket(currArtistId).emit('wordToDraw', nextWord);
+    },
+
     sync: function(data, socket) {
-      if (data.method === 'create') {
-        this.create(data, socket);
-      }
       if (data.method === 'read') {
         this.read(data, socket);
       }
       if (data.method === 'update') {
         this.update(data, socket);
       }
-      if (data.method === 'delete') {
-        // "delete" is a reserved keyword
-        this.deleteModel(data, socket);
-      }
-    },
-
-    create: function(data, socket) {
     },
 
     read: function(data, socket) {

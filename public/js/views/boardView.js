@@ -5,24 +5,32 @@ var BoardView = Backbone.View.extend({
 
     _.extend(this, Backbone.Events);
     _.bindAll(this,
+              'doClear',
               'clearBoard',
               'mouseDown',
               'mouseDrag',
               'mouseUp',
+              'updateWordToDraw',
               'canDraw');
 
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
+    this.wordToDrawEl = this.$('.wordToDraw');
   },
 
   events: {
-    'click .clear': 'clearBoard'
+    'click .clearBtn': 'clearBoard'
   },
 
-  clearBoard: function() {
+  doClear: function() {
     this.path = new Path.Rectangle(new Point(0, 0), view.viewSize);
     this.path.fillColor = '#fff';
     view.draw();
+  },
+
+  clearBoard: function() {
+    this.doClear();
+    this.trigger('clearBoard');
   },
 
   mouseDown: function(evt) {
@@ -73,6 +81,11 @@ var BoardView = Backbone.View.extend({
     this.tool.onMouseDown = this.mouseDown;
     this.tool.onMouseDrag = this.mouseDrag;
     this.tool.onMouseUp   = this.mouseUp;
+  },
+
+  updateWordToDraw: function(word) {
+    this.wordToDrawEl.find('.word').text(word);
+    this.wordToDrawEl.show();
   },
 
   canDraw: function() {
