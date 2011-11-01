@@ -47,7 +47,6 @@ PlayersCollection = Backbone.Collection.extend({
   setPlayerName: function(o) {
     var playerModel = this.get(o.id);
     if (playerModel) {
-      console.log('saving name ' + o.name);
       playerModel.save({ 'name': o.name });
     }
     else {
@@ -63,9 +62,7 @@ PlayersCollection = Backbone.Collection.extend({
 
   playerUpdate: function(o) {
     try {
-      console.log('updating player');
       this.get(o.id).set(o);
-      console.log('updated player');
     }
     catch (e) {
       console.log(e);

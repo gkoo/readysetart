@@ -35,8 +35,6 @@ GameStatusModel = Backbone.Model.extend({
 
   handleGameStatus: function(o) {
     try {
-      console.log('o');
-      console.log(o);
       this.set(o);
     }
     catch(e) {

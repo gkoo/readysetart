@@ -50,7 +50,7 @@ module.exports = function() {
       wordList = usedWords;
       usedWords = [];
     }
-    //word = 'banana';
+    word = 'banana';
     this.currentWord = word;
     return word;
   };

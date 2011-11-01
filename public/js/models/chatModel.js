@@ -14,11 +14,17 @@ MessageCollection = Backbone.Collection.extend({
 
 ChatModel = Backbone.Model.extend({
   initialize: function() {
+    var _this = this;
+
     _.bindAll(this,
               'addMessage',
               'addMessages');
+
     _.extend(this, Backbone.Events);
     this.set({ 'outboundMessages': [] });
+    this.get('messages').bind('add', function(msg) {
+      _this.trigger('addMessage', msg);
+    });
   },
 
   addMessages: function(newMessages) {

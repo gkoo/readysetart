@@ -14,7 +14,7 @@ ChatController = function(modelJson) {
         this.model.getPlayerById = chatModelJson.getPlayerById;
 
         this.view.bind('submitMessage', this.model.addMessage);
-        this.model.get('messages').bind('add', this.view.renderNewMessage);
+        this.model.bind('addMessage', this.view.addChatMessage);
 
         setInterval(function() {
           var newMessages = _this.model.get('outboundMessages');
@@ -29,6 +29,11 @@ ChatController = function(modelJson) {
       catch(e) {
         console.log(e);
       }
+      return this;
+    },
+
+    notifyCorrectGuess: function(o) {
+      this.view.displayCorrectGuess(o);
     },
 
     setupIncomingSocketEvents: function() {

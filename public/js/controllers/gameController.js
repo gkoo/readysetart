@@ -9,7 +9,8 @@ var GameController = function(socket) {
                 'readResponse',
                 'getCurrPlayer',
                 'getPlayerById',
-                'setupSocketEvents');
+                'setupSocketEvents',
+                'notifyCorrectGuess');
       this.model = new GameModel();
       this.setupSocketEvents();
       return this;
@@ -222,7 +223,7 @@ var GameController = function(socket) {
     },
 
     notifyCorrectGuess: function(o) {
-      alert([o.name, 'guessed correctly:', o.message].join(' '));
+      this.chatController.notifyCorrectGuess(o);
     }
   };
   return controller.initialize(socket);

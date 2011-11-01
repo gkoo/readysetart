@@ -4,8 +4,10 @@ var ChatView = Backbone.View.extend({
     _.bindAll(this,
               'render',
               'renderNewMessage',
+              'addChatMessage',
               'getPlayerNameById',
-              'handleChatMessage');
+              'handleChatMessage',
+              'displayCorrectGuess');
     this.getPlayerById = o.getPlayerById;
     this.chatWindow = this.$('.chat');
     this.textField  = this.$('.msg');
@@ -21,14 +23,17 @@ var ChatView = Backbone.View.extend({
     this.model.get('messages').each(this.renderNewMessage);
   },
 
-  renderNewMessage: function(message) {
+  renderNewMessage: function(messageStr) {
+    var newMsg = $('<li>').text(messageStr);
+    this.chatWindow.append(newMsg);
+  },
+
+  addChatMessage: function(message) {
     var sender = message.get('sender'),
         name   = message.get('name'),
         time   = message.get('time'),
-        text   = message.get('message'),
-        newMsg = $('<li>').text([name, text].join(': '));
-
-    this.chatWindow.append(newMsg);
+        text   = message.get('message');
+    this.renderNewMessage([name, text].join(': '));
   },
 
   getPlayerNameById: function(id) {
@@ -49,5 +54,9 @@ var ChatView = Backbone.View.extend({
       this.textField.val('');
     }
     evt.preventDefault();
+  },
+
+  displayCorrectGuess: function(o) {
+    this.renderNewMessage([o.name, 'guessed correctly:', o.message].join(' '));
   }
 });
