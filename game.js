@@ -10,19 +10,22 @@ var socketio = require('socket.io'),
     pict     = require('./pictionary.js'),
     chatLib  = require('./chat.js'),
     Backbone = require('backbone'),
-    WordBase = require('./wordbase/wordbase.js');
 
-    playerLib      = require('./public/js/models/playerModel.js'),
+    //playerLib      = require('./public/js/models/playerModel.js'),
+    playerLib      = require('./player.js'),
     //teamLib      = require('./public/js/models/teamModel.js'),
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
+    TURN_DURATION  = 10000, // 10 seconds
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
-    this.set({ 'players':    new playerLib.PlayersCollection(),
-               'chat':       new chatLib.ChatModel(),
-               'gameStatus':   new gameStatusLib.GameStatusModel() });
-  },
+    this.set({ 'players':      new playerLib.PlayersCollection(),
+               'chat':         new chatLib.ChatModel(),
+               'gameStatus':   new gameStatusLib.GameStatusModel(),
+               'turnDuration': TURN_DURATION
+             });
+  }
 }),
 
 GameController = function() {
@@ -36,20 +39,14 @@ GameController = function() {
                  'update');
 
       this.model = new GameModel();
-      this.wordBase = new WordBase();
 
       chatModel = this.model.get('chat');
       chatModel.bind('newMessages', function(messages) {
-        var currArtistId = -1;
-        if (_this.model.get('players').currArtist) {
-          currArtistId = _this.model.get('players').currArtist.id;
-        }
-        else {
-          return;
-        }
+        var currArtistId = _this.model.get('players').getCurrentArtist();
+        if (!currArtistId) { return; }
         if (messages[0].sender !== currArtistId) {
           // filter out any "guesses" from the artist
-          _this.wordBase.checkGuesses(messages);
+          pict.wordBase.checkGuesses(messages);
         }
       });
       return this;
@@ -93,14 +90,23 @@ GameController = function() {
         socket.on('gameStatus', function (o) {
           var leader = players.getLeader(),
               status = o.gameStatus,
-              currArtistId = _this.model.get('players').setCurrentArtist(),
+              date   = new Date(),
+              currArtistId,
               gameStatusModel,
               newStatus;
 
           if (socket.id === leader.get('id')) {
+            // Player is authorized to start the game.
+
+            players.decideArtistOrder();
+            currArtistId = players.getCurrentArtist();
+            turnEnd = date.getTime() + TURN_DURATION;
+
+            _this.model.set({ 'turnEnd': turnEnd });
             gameStatusModel = _this.model.get('gameStatus');
             newStatus = { 'gameStatus': status,
-                          'currArtist': currArtistId }
+                          'currArtist': currArtistId,
+                          'turnEnd':    turnEnd };
             gameStatusModel.set(newStatus);
             socket.broadcast.emit('gameStatus', newStatus);
             socket.emit('gameStatus', newStatus);
@@ -149,10 +155,9 @@ GameController = function() {
           _this.sync(data, socket);
         });
 
-        _this.wordBase.bind('correctGuess', function(o) {
-          console.log('emitting correctGuess');
-          console.log('\n\n\nmy id is: ' + socket.id);
+        pict.wordBase.bind('correctGuess', function(o) {
           socket.emit('correctGuess', o);
+          _this.sendNextWord();
         });
 
         pict.listen(socket);
@@ -164,12 +169,15 @@ GameController = function() {
     },
 
     sendNextWord: function() {
-      var nextWord        = this.wordBase.getUnusedWord(),
-          gameStatusModel = this.model.get('gameStatus'),
-          currArtistId    = gameStatusModel.get('currArtist');
+      var nextWord     = pict.wordBase.getUnusedWord(),
+          playersModel = this.model.get('players'),
+          currArtistId = playersModel.getCurrentArtist();
 
       // Send currArtist the first word.
       io.of('/game').socket(currArtistId).emit('wordToDraw', nextWord);
+    },
+
+    endPlayerTurn: function() {
     },
 
     sync: function(data, socket) {

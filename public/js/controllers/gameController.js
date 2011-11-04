@@ -170,7 +170,6 @@ var GameController = function(socket) {
 
     readResponse: function(data) {
       var players, teams;
-      console.log('handling readResponse');
       if (!data || !data.type || !data.model) {
         console.log('[err] couldn\'t detect data');
         return;

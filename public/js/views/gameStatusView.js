@@ -1,12 +1,13 @@
 var GameStatusView = Backbone.View.extend({
   initialize: function(o) {
     try {
-      _.bindAll(this, 'render');
+      _.bindAll(this, 'render', 'renderTimeLeft');
       this.model.bind('change', this.render);
       this.getPlayerById  = o.getPlayerById;
-      this.render();
       this.statusEl       = this.$('.status');
       this.artistEl       = this.$('.artist');
+      this.timeLeftEl     = this.$('.timeLeft');
+      this.render();
     }
     catch(e) {
       console.log(e);
@@ -15,10 +16,17 @@ var GameStatusView = Backbone.View.extend({
 
   render: function() {
     var currArtistId = this.model.get('currArtist'),
+        turnEnd      = this.model.get('turnEnd'),
         artistPlayer;
 
     if (this.model.get('gameStatus') === GameStatusEnum.IN_PROGRESS) {
       this.$('.status').text('Game has started.');
+    }
+
+    if (turnEnd) {
+      this.turnEnd = turnEnd;
+      this.timerInterval = setInterval(this.renderTimeLeft, 1000);
+      this.renderTimeLeft();
     }
 
     if (currArtistId) {
@@ -31,5 +39,17 @@ var GameStatusView = Backbone.View.extend({
       }
     }
     this.el.show();
-  }
+  },
+
+  renderTimeLeft: function() {
+    var time = new Date(),
+        timeLeft = (this.turnEnd - time)/1000; // in seconds
+    timeLeft = Math.floor(timeLeft); // round to integer
+    if (timeLeft < 0 && this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+    else {
+      this.timeLeftEl.text(timeLeft + ' seconds');
+    }
+  },
 });

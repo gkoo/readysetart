@@ -29,13 +29,25 @@ PlayersCollection = Backbone.Collection.extend({
   url: '/players',
 
   initialize: function() {
+    var serverFns = ['getCurrentArtist',
+                     'hasNextArtist',
+                     'getNextArtist',
+                     'decideArtistOrder'];
     _u.extend(this, Backbone.Events);
     _u.bindAll(this,
                'setPlayerName',
                'handleNewPlayer',
                'playerUpdate',
-               'playerDisconnect',
-               'setCurrentArtist');
+               'playerDisconnect');
+
+    // take care of server-side stuff context-binding.
+    // Backbone/underscore's way of extending makes
+    // this hard to decouple.
+    _u.each(serverFns, function(fn) {
+      if (this[fn]) {
+        _u.bind(this[fn], this);
+      }
+    });
   },
 
   getLeader: function() {
@@ -78,13 +90,7 @@ PlayersCollection = Backbone.Collection.extend({
     else {
       console.log('[err] couldn\'t find player to remove');
     }
-  },
-
-  setCurrentArtist: function() {
-    var leader = this.getLeader();
-    this.currArtist = leader;
-    return leader.id;
-  },
+  }
 });
 
 if (isServer) {
