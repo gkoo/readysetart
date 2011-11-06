@@ -20,7 +20,7 @@ var socketio = require('socket.io'),
     //teamLib      = require('./public/js/models/teamModel.js'),
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
-    TURN_DURATION  = 30000, // 30 seconds
+    TURN_DURATION  = 30000,
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
@@ -57,7 +57,7 @@ GameController = function() {
 
       io = socketio.listen(app);
       io.set('transports', ['htmlfile', 'xhr-polling', 'jsonp-polling']);
-      io.set('log level', 0); // prevent socket.io's log messages from cluttering the console output
+      //io.set('log level', 0); // prevent socket.io's log messages from cluttering the console output
       io.sockets.on('connection', function(socket) {
 
         var players   = _this.model.get('players'),

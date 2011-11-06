@@ -1,3 +1,5 @@
+// TODO: clear the board when someone makes a correct guess
+
 var BoardView = Backbone.View.extend({
   initialize: function() {
     try {
@@ -13,8 +15,10 @@ var BoardView = Backbone.View.extend({
                 'mouseUp',
                 'updateWordToDraw',
                 'clearWordToDraw',
-                'resetBoard',
-                'canDraw',
+                'reset',
+                'enable',
+                'disable',
+                'resetAndEnable',
                 'debug');
 
       this.setupPaperCanvas();
@@ -43,7 +47,7 @@ var BoardView = Backbone.View.extend({
   },
 
   mouseDown: function(evt) {
-    if (this.canDraw()) {
+    if (this.enabled) {
       if (!this.path) {
         this.path = new Path();
       }
@@ -54,14 +58,14 @@ var BoardView = Backbone.View.extend({
   },
 
   mouseDrag: function(evt) {
-    if (this.canDraw() && this.path) {
+    if (this.enabled && this.path) {
       this.path.add(evt.point);
     }
   },
 
   mouseUp: function(evt) {
     var segment, segments = [];
-    if (this.canDraw() && this.path) {
+    if (this.enabled && this.path) {
       this.path.simplify(10);
       for (var i=0,len=this.path.segments.length; i<len; ++i) {
         tmpSegment = this.path.segments[i];
@@ -102,17 +106,23 @@ var BoardView = Backbone.View.extend({
     this.wordToDrawEl.hide();
   },
 
-  resetBoard: function() {
+  reset: function() {
     this.doClear();
     this.clearWordToDraw();
-    this.model.set({ 'boardEnabled': false });
+    this.enabled = false;
   },
 
-  canDraw: function() {
-    // This function returns whether or not the player is
-    // currently allowed to draw. Usually it denotes
-    // whether or not it is currenlty the player's turn.
-    return this.model.get('boardEnabled');
+  enable: function() {
+    this.enabled = true;
+  },
+
+  disable: function() {
+    this.enabled = false;
+  },
+
+  resetAndEnable: function() {
+    this.reset();
+    this.enable();
   },
 
   debug: function() {

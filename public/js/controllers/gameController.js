@@ -10,7 +10,6 @@ var GameController = function(socket) {
                 'getCurrPlayer',
                 'getPlayerById',
                 'setupSocketEvents',
-                'enableBoard',
                 'notifyCorrectGuess',
                 'handleTurnOver');
       this.model = new GameModel();
@@ -35,14 +34,11 @@ var GameController = function(socket) {
         */
 
         this.gameControls         = new GameControlsView({ el: $('.controls') });
-        this.gameStatusController = new GameStatusController({ model: this.gameStatus,
-                                                               getPlayerById: this.getPlayerById });
+        this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
+                                                               getPlayerById: this.getPlayerById,
+                                                               getCurrPlayer:  this.getCurrPlayer });
         this.gameIntro            = new GameIntroView({ el: $('#intro') });
-        this.boardModel           = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
-        this.boardView            = new BoardView({ el: $('.board'),
-                                              model: this.boardModel });
-
-        this.boardModel.getCurrPlayer = this.getCurrPlayer;
+        this.boardView            = new BoardView({ el: $('.board') });
       } catch (e) {
         console.log(e);
       }
@@ -157,18 +153,20 @@ var GameController = function(socket) {
       this.boardView.bind('newStrokePub', this.broadcastStroke);
       this.boardView.bind('clearBoard', this.broadcastClearBoard);
       this.boardView.bind('debug', this.debug);
-      this.gameStatusController.bind('turnOver', this.boardView.resetBoard);
+      this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
 
       // Game Status Events
       this.gameStatusController.bind('turnOver', this.handleTurnOver);
+      this.gameStatusController.bind('turnOver', this.boardView.disable);
+      this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
+      this.gameStatusController.bind('artistChange', this.boardView.reset);
 
       // Controller Events
       this.bind('gameStatus', this.gameStatusController.setGameStatus);
       this.bind('gameStatus', this.gameControls.updateControls);
-      this.bind('gameStatus', this.enableBoard);
       this.bind('notifyCorrectGuess', this.notifyCorrectGuess);
 
       // Game Control Events
@@ -230,14 +228,6 @@ var GameController = function(socket) {
 
     notifyCorrectGuess: function(o) {
       this.chatController.notifyCorrectGuess(o);
-    },
-
-    enableBoard: function(o) {
-      // enable board for the current artist.
-      var currPlayer = this.getCurrPlayer();
-      if (currPlayer.id === o.currArtist) {
-        this.boardModel.set({ 'boardEnabled': true });
-      }
     },
 
     handleTurnOver: function() {
