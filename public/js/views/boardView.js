@@ -1,25 +1,34 @@
 var BoardView = Backbone.View.extend({
   initialize: function() {
-    paper.install(window);
-    paper.setup(document.getElementById('gameBoard'));
+    try {
+      paper.install(window);
+      paper.setup(document.getElementById('gameBoard'));
 
-    _.extend(this, Backbone.Events);
-    _.bindAll(this,
-              'doClear',
-              'clearBoard',
-              'mouseDown',
-              'mouseDrag',
-              'mouseUp',
-              'updateWordToDraw',
-              'canDraw');
+      _.extend(this, Backbone.Events);
+      _.bindAll(this,
+                'doClear',
+                'clearBoard',
+                'mouseDown',
+                'mouseDrag',
+                'mouseUp',
+                'updateWordToDraw',
+                'clearWordToDraw',
+                'resetBoard',
+                'canDraw',
+                'debug');
 
-    this.setupPaperCanvas();
-    this.canvas = this.$('#gameBoard');
-    this.wordToDrawEl = this.$('.wordToDraw');
+      this.setupPaperCanvas();
+      this.canvas = this.$('#gameBoard');
+      this.wordToDrawEl = this.$('.wordToDraw');
+    }
+    catch(e) {
+      console.log(e);
+    }
   },
 
   events: {
-    'click .clearBtn': 'clearBoard'
+    'click .clearBtn': 'clearBoard',
+    'click .debug': 'debug'
   },
 
   doClear: function() {
@@ -88,7 +97,25 @@ var BoardView = Backbone.View.extend({
     this.wordToDrawEl.show();
   },
 
+  clearWordToDraw: function() {
+    this.wordToDrawEl.find('.word').text('');
+    this.wordToDrawEl.hide();
+  },
+
+  resetBoard: function() {
+    this.doClear();
+    this.clearWordToDraw();
+    this.model.set({ 'boardEnabled': false });
+  },
+
   canDraw: function() {
+    // This function returns whether or not the player is
+    // currently allowed to draw. Usually it denotes
+    // whether or not it is currenlty the player's turn.
     return this.model.get('boardEnabled');
+  },
+
+  debug: function() {
+    this.trigger('debug');
   }
 });

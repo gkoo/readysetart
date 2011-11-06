@@ -17,11 +17,11 @@ PlayersCollection = playerLib.PlayersCollection.extend({
   getNextArtist: function() {
     if (!this.artistOrder || !this.artistOrder.length) {
       console.log('[err] something is wrong, no artistOrder.');
-      return;
+      return 0;
     }
     if (this.artistOrder.length === 1) {
       console.log('[err] getNextArtist: no artists left');
-      return;
+      return 0;
     }
     this.artistOrder.splice(0, 1);
     return this.artistOrder[0];
@@ -49,9 +49,7 @@ PlayersCollection = playerLib.PlayersCollection.extend({
       artistId = tmpOrder.splice(idx, 1);
       this.artistOrder.push(artistId[0]);
       len = tmpOrder.length;
-      console.log('added one artist');
     }
-    console.log('done adding artists');
   }
 });
 

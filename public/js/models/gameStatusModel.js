@@ -18,8 +18,6 @@ GameStatusEnum = {
 
 GameStatusModel = Backbone.Model.extend({
   initialize: function() {
-    _u.bindAll(this,
-               'handleGameStatus');
     this.set({ 'type': 'gameStatus' });
   },
 
@@ -31,16 +29,7 @@ GameStatusModel = Backbone.Model.extend({
         return 'Unrecognized game status: ' + attrs.status;
       }
     }
-  },
-
-  handleGameStatus: function(o) {
-    try {
-      this.set(o);
-    }
-    catch(e) {
-      console.log(e);
-    }
-  },
+  }
 });
 
 if (typeof exports !== 'undefined') {

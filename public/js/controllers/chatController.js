@@ -1,5 +1,3 @@
-var chatSocket = io.connect('/chat'),
-
 ChatController = function(modelJson) {
   var controller = {
     initialize: function(chatModelJson) {
@@ -19,7 +17,7 @@ ChatController = function(modelJson) {
         setInterval(function() {
           var newMessages = _this.model.get('outboundMessages');
           if (newMessages && newMessages.length) {
-            chatSocket.emit('newMessages', newMessages); // send message to server
+            socket.emit('newMessages', newMessages); // send message to server
             _this.model.set({ 'outboundMessages': [] }); // reset unsent messages
           }
         }, 500);
@@ -37,7 +35,7 @@ ChatController = function(modelJson) {
     },
 
     setupIncomingSocketEvents: function() {
-      chatSocket.on('incomingMessages', this.model.addMessages);
+      socket.on('incomingMessages', this.model.addMessages);
     },
   };
   return controller.initialize(modelJson);

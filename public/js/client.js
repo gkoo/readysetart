@@ -1,6 +1,6 @@
 // TODO: fix curruser
 
-var socket = io.connect('/game');
+var socket = io.connect();
 
 $(function() {
   var gameController;

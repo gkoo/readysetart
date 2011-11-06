@@ -4,6 +4,10 @@
 // schedule of drawers. This way, if people come and go during
 // the middle of the game, they can still participate and guess,
 // but it won't mess up who gets to draw, etc.
+//
+// TODO: a way to restart the game
+// TODO: handle case where currArtist disconnects
+// TODO: handle case where leader disconnects
 
 var socketio = require('socket.io'),
     _u       = require('underscore'),
@@ -16,14 +20,13 @@ var socketio = require('socket.io'),
     //teamLib      = require('./public/js/models/teamModel.js'),
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
-    TURN_DURATION  = 10000, // 10 seconds
+    TURN_DURATION  = 30000, // 30 seconds
 
 GameModel = Backbone.Model.extend({
   initialize: function() {
     this.set({ 'players':      new playerLib.PlayersCollection(),
                'chat':         new chatLib.ChatModel(),
-               'gameStatus':   new gameStatusLib.GameStatusModel(),
-               'turnDuration': TURN_DURATION
+               'gameStatus':   new gameStatusLib.GameStatusModel({ 'turnDuration': TURN_DURATION }),
              });
   }
 }),
@@ -36,19 +39,14 @@ GameController = function() {
                  'sendNextWord',
                  'sync',
                  'read',
-                 'update');
+                 'update',
+                 'updatePlayer',
+                 'doCheckGuesses');
 
       this.model = new GameModel();
 
       chatModel = this.model.get('chat');
-      chatModel.bind('newMessages', function(messages) {
-        var currArtistId = _this.model.get('players').getCurrentArtist();
-        if (!currArtistId) { return; }
-        if (messages[0].sender !== currArtistId) {
-          // filter out any "guesses" from the artist
-          pict.wordBase.checkGuesses(messages);
-        }
-      });
+      chatModel.bind('newMessages', this.doCheckGuesses);
       return this;
     },
 
@@ -59,7 +57,8 @@ GameController = function() {
 
       io = socketio.listen(app);
       io.set('transports', ['htmlfile', 'xhr-polling', 'jsonp-polling']);
-      io.of('/game').on('connection', function(socket) {
+      io.set('log level', 0); // prevent socket.io's log messages from cluttering the console output
+      io.sockets.on('connection', function(socket) {
 
         var players   = _this.model.get('players'),
             yourId    = socket.id,
@@ -76,10 +75,10 @@ GameController = function() {
 
         players.add(initInfo);
 
+        console.log('emitting userId');
         socket.emit('userId', yourId);
 
-        // Sends to everyone except for new user
-        socket.broadcast.emit('newPlayer', initInfo);
+        socket.broadcast.emit('newPlayer', initInfo); // Sends to everyone except for new user
 
         // LISTENERS
 
@@ -88,9 +87,10 @@ GameController = function() {
         });
 
         socket.on('gameStatus', function (o) {
-          var leader = players.getLeader(),
-              status = o.gameStatus,
-              date   = new Date(),
+          var leader  = players.getLeader(),
+              status  = o.gameStatus,
+              date    = new Date(),
+              turnEnd = (new Date()).getTime() + TURN_DURATION,
               currArtistId,
               gameStatusModel,
               newStatus;
@@ -100,16 +100,14 @@ GameController = function() {
 
             players.decideArtistOrder();
             currArtistId = players.getCurrentArtist();
-            turnEnd = date.getTime() + TURN_DURATION;
 
-            _this.model.set({ 'turnEnd': turnEnd });
             gameStatusModel = _this.model.get('gameStatus');
-            newStatus = { 'gameStatus': status,
-                          'currArtist': currArtistId,
-                          'turnEnd':    turnEnd };
+            newStatus = { 'gameStatus': status, // set new status for all players
+                          'currArtist': currArtistId };
             gameStatusModel.set(newStatus);
             socket.broadcast.emit('gameStatus', newStatus);
             socket.emit('gameStatus', newStatus);
+            gameStatusModel.set({ 'turnEnd': turnEnd });
             _this.sendNextWord();
           }
           else {
@@ -138,6 +136,21 @@ GameController = function() {
           console.log(_this.model.get('players').toJSON());
         });
 
+        socket.on('turnOver', function() {
+          var nextArtist, newStatus, nextWord;
+          if (players.hasNextArtist()) {
+            nextArtist = players.getNextArtist();
+            newStatus = { 'currArtist': nextArtist };
+            socket.broadcast.emit('gameStatus', newStatus);
+            socket.emit('gameStatus', newStatus);
+            gameStatusModel.set(newStatus);
+            _this.sendNextWord();
+          }
+          else {
+            // TODO: no more artists, signal end of round
+          }
+        });
+
         socket.on('disconnect', function(data) {
           var i, len, player, id = socket.id;
 
@@ -155,17 +168,13 @@ GameController = function() {
           _this.sync(data, socket);
         });
 
-        pict.wordBase.bind('correctGuess', function(o) {
-          socket.emit('correctGuess', o);
-          _this.sendNextWord();
+        socket.on('debug', function() {
         });
 
         pict.listen(socket);
+        _this.model.get('chat').listen(socket);
 
       });
-
-      chat = this.model.get('chat');
-      chat.listen(io);
     },
 
     sendNextWord: function() {
@@ -174,7 +183,7 @@ GameController = function() {
           currArtistId = playersModel.getCurrentArtist();
 
       // Send currArtist the first word.
-      io.of('/game').socket(currArtistId).emit('wordToDraw', nextWord);
+      io.sockets.socket(currArtistId).emit('wordToDraw', nextWord);
     },
 
     endPlayerTurn: function() {
@@ -230,6 +239,21 @@ GameController = function() {
       catch (e) {
         console.log(e);
         res.send({ status: 'failure' }, 500);
+      }
+    },
+
+    doCheckGuesses: function(o) {
+      var messages     = o.messages,
+          currArtistId = this.model.get('players').getCurrentArtist();
+
+      if (!currArtistId) { return; }
+      if (messages[0].sender !== currArtistId) {
+        // filter out any "guesses" from the artist
+        correctGuess = pict.wordBase.checkGuesses(messages);
+        if (correctGuess) {
+          o.callback(correctGuess, o.socket);
+          this.sendNextWord();
+        }
       }
     }
   }

@@ -10,7 +10,9 @@ var GameController = function(socket) {
                 'getCurrPlayer',
                 'getPlayerById',
                 'setupSocketEvents',
-                'notifyCorrectGuess');
+                'enableBoard',
+                'notifyCorrectGuess',
+                'handleTurnOver');
       this.model = new GameModel();
       this.setupSocketEvents();
       return this;
@@ -31,20 +33,19 @@ var GameController = function(socket) {
                                             collection:    this.teamsColl,
                                             getPlayerById: this.getPlayerById });
         */
+
+        this.gameControls         = new GameControlsView({ el: $('.controls') });
+        this.gameStatusController = new GameStatusController({ model: this.gameStatus,
+                                                               getPlayerById: this.getPlayerById });
+        this.gameIntro            = new GameIntroView({ el: $('#intro') });
+        this.boardModel           = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
+        this.boardView            = new BoardView({ el: $('.board'),
+                                              model: this.boardModel });
+
+        this.boardModel.getCurrPlayer = this.getCurrPlayer;
       } catch (e) {
         console.log(e);
       }
-
-      this.gameControls   = new GameControlsView({ el: $('.controls') });
-      this.gameStatusView = new GameStatusView({ el: $('.gameInfo'),
-                                                 model: this.gameStatus,
-                                                 getPlayerById: this.getPlayerById });
-      this.gameIntro      = new GameIntroView({ el: $('#intro') });
-      this.boardModel     = new BoardModel({ 'boardEnabled': this.getCurrPlayer().get('isLeader') });
-      this.boardView      = new BoardView({ el: $('.board'),
-                                            model: this.boardModel });
-
-      this.boardModel.getCurrPlayer = this.getCurrPlayer;
     },
 
     setupGameState: function(gameData) {
@@ -120,8 +121,8 @@ var GameController = function(socket) {
         _this.trigger('clearBoard');
       });
 
-      socket.on('correctGuess', function(o) {
-        _this.trigger('correctGuess', o);
+      socket.on('notifyCorrectGuess', function(o) {
+        _this.trigger('notifyCorrectGuess', o);
       });
     },
 
@@ -155,17 +156,23 @@ var GameController = function(socket) {
       // Board Events
       this.boardView.bind('newStrokePub', this.broadcastStroke);
       this.boardView.bind('clearBoard', this.broadcastClearBoard);
+      this.boardView.bind('debug', this.debug);
+      this.gameStatusController.bind('turnOver', this.boardView.resetBoard);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
 
+      // Game Status Events
+      this.gameStatusController.bind('turnOver', this.handleTurnOver);
+
       // Controller Events
-      this.bind('gameStatus', this.gameStatus.handleGameStatus);
+      this.bind('gameStatus', this.gameStatusController.setGameStatus);
       this.bind('gameStatus', this.gameControls.updateControls);
-      this.bind('correctGuess', this.notifyCorrectGuess);
+      this.bind('gameStatus', this.enableBoard);
+      this.bind('notifyCorrectGuess', this.notifyCorrectGuess);
 
       // Game Control Events
-      this.gameControls.bind('gameStatus', this.gameStatus.handleGameStatus);
+      this.gameControls.bind('gameStatus', this.gameStatusController.setGameStatus);
     },
 
     readResponse: function(data) {
@@ -223,6 +230,22 @@ var GameController = function(socket) {
 
     notifyCorrectGuess: function(o) {
       this.chatController.notifyCorrectGuess(o);
+    },
+
+    enableBoard: function(o) {
+      // enable board for the current artist.
+      var currPlayer = this.getCurrPlayer();
+      if (currPlayer.id === o.currArtist) {
+        this.boardModel.set({ 'boardEnabled': true });
+      }
+    },
+
+    handleTurnOver: function() {
+      socket.emit('turnOver');
+    },
+
+    debug: function() {
+      socket.emit('debug');
     }
   };
   return controller.initialize(socket);

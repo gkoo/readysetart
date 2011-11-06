@@ -1,1 +1,7 @@
-var BoardModel = Backbone.Model.extend();
+var BoardModel = Backbone.Model.extend({
+  initialize: function() {
+    _.bindAll(this, 'setBoard');
+  },
+  setBoard: function() {
+  }
+});

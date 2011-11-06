@@ -28,6 +28,10 @@ module.exports = (function() {
           if (err) throw err;
           if (data) {
             wordList = data.split('\n');
+            if (wordList[wordList.length-1] === '') {
+              //strip off the last empty string word
+              wordList.splice(wordList.length-1, 1);
+            }
           }
           if (callback) {
             callback(wordList);
@@ -47,8 +51,10 @@ module.exports = (function() {
           rand = Math.floor(Math.random() * wordListLength),
           word = wordList[rand];
 
+      // Have the word. Update lists now.
       wordList.splice(rand, 1); // Delete from wordList.
       usedWords.push(word);     // Add to usedWords.
+
       if (wordList.length === 0) {
         console.info('WordList is empty. Resetting...');
         wordList = usedWords;
@@ -63,14 +69,27 @@ module.exports = (function() {
     },
 
     checkGuesses: function(messages) {
-      var currentWord = this.currentWord, _this = this;
-      console.log('checking guesses');
-      if (currentWord) {
-        _u.each(messages, function(newMessage) {
-          if (currentWord && newMessage.message.toLowerCase() === currentWord.toLowerCase()) {
-            _this.trigger('correctGuess', newMessage);
+      // Made this word synchronous rather than event-based
+      // because for some reason Backbone's event was being
+      // triggered twice. Wasn't able to figure it out.
+      var guessed = false,
+          i, len, message, newMessage;
+      if (this.currentWord) {
+        for (i=0, len=messages.length; i<len; ++i) {
+          newMessage = messages[i];
+          if (newMessage.message.toLowerCase() === this.currentWord.toLowerCase()) {
+            // Correct guess!
+            guessed = true;
+            message = newMessage;
+            break;
           }
-        });
+        }
+      }
+      if (guessed) {
+        return message;
+      }
+      else {
+        return 0;
       }
     }
   };

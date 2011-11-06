@@ -35,6 +35,7 @@ PlayersCollection = Backbone.Collection.extend({
                      'decideArtistOrder'];
     _u.extend(this, Backbone.Events);
     _u.bindAll(this,
+               'getLeader',
                'setPlayerName',
                'handleNewPlayer',
                'playerUpdate',

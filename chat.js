@@ -15,7 +15,8 @@ module.exports.ChatModel = Backbone.Model.extend({
     _u.extend(this, Backbone.Events);
     _u.bindAll(this,
                'addMessages',
-               'listen');
+               'listen',
+               'handleCorrectGuess');
 
     this.set({ 'messages': new MessageCollection(),
                'bufferLength': 10 });
@@ -39,19 +40,24 @@ module.exports.ChatModel = Backbone.Model.extend({
   // ================
   // Takes a Socket.IO object and listens on the 'chat'
   // namespace.
-  listen: function(io) {
+  listen: function(socket) {
     var _this = this;
-    io.of('/chat').on('connection', function(socket) {
-      socket.on('newMessages', function(newMessages) {
-        if (!newMessages || !newMessages.length) {
-          console.log('[err] empty newMessages in chat');
-        }
-        else {
-          _this.addMessages(newMessages);
-          _this.trigger('newMessages', newMessages);
-          socket.broadcast.emit('incomingMessages', newMessages);
-        }
-      });
+    socket.on('newMessages', function(newMessages) {
+      if (!newMessages || !newMessages.length) {
+        console.log('[err] empty newMessages in chat');
+      }
+      else {
+        _this.addMessages(newMessages);
+        _this.trigger('newMessages', { 'messages': newMessages,
+                                       'callback': _this.handleCorrectGuess,
+                                       'socket':   socket });
+        socket.broadcast.emit('incomingMessages', newMessages);
+      }
     });
+  },
+
+  handleCorrectGuess: function(correctGuess, socket) {
+    socket.emit('notifyCorrectGuess', correctGuess);
+    socket.broadcast.emit('notifyCorrectGuess', correctGuess);
   }
 });
