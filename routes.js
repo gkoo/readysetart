@@ -1,6 +1,6 @@
 var express = require('express'),
     app     = module.exports = express.createServer(),
-    PORT    = 8080;
+    PORT    = process.env.PORT || 8080;
 
 // Configuration
 
