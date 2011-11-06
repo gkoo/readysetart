@@ -4,6 +4,9 @@
   , "private": true
   , "dependencies": {
       "express": "2.3.12"
-    , "jade": ">= 0.0.1"
+    , "jade": "0.13.0"
+    , "underscore": "1.1.7"
+    , "backbone": "0.5.3"
+    , "socket.io": "0.7.7"
   }
 }
