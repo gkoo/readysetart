@@ -8,6 +8,7 @@
 // TODO: a way to restart the game
 // TODO: handle case where currArtist disconnects
 // TODO: handle case where leader disconnects
+// TODO: re-enable start button after all turns are over
 // TODO: figure out messaging that says "leader will start the game."
 //       ("how do i draw" whenever someone looks at it)
 

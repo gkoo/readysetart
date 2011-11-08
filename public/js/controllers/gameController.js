@@ -220,6 +220,8 @@ var GameController = function(socket) {
     },
 
     broadcastStroke: function(segments) {
+      console.log('emitting newStrokePub');
+      console.log(segments);
       socket.emit('newStrokePub', segments);
     },
 
