@@ -145,6 +145,7 @@ var GameController = function(socket) {
       this.bind('playerUpdate', this.playersColl.playerUpdate);
       this.bind('playerName',   this.playersColl.setPlayerName);
       this.bind('playerDisconnect', this.playersColl.playerDisconnect);
+      this.playersColl.bind('removedPlayer', this.chatController.handlePlayerDisconnect);
 
       // TeamCollection Events
       //this.bind('newPlayer', this.teamsColl.addPlayer);

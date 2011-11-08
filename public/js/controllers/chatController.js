@@ -1,8 +1,9 @@
-ChatController = function(modelJson) {
+var ChatController = function(modelJson) {
   var controller = {
     initialize: function(chatModelJson) {
       var _this = this;
       try {
+        _.bindAll(this, 'handlePlayerDisconnect');
         this.model = new ChatModel({ bufferLength: chatModelJson.bufferLength,
                                      messages:     new MessageCollection(chatModelJson.messages) });
         this.view  = new ChatView({ el: $('#chat-container'),
@@ -37,6 +38,19 @@ ChatController = function(modelJson) {
     setupIncomingSocketEvents: function() {
       socket.on('incomingMessages', this.model.addMessages);
     },
+
+    handlePlayerDisconnect: function(model) {
+      if (model.length) {
+        // array of models
+        _.each(model, function(m) {
+          handlePlayerDisconnect(m);
+        });
+      }
+      else {
+        // just one model
+        this.view.renderNewMessage(model.get('name') + ' has left the game.');
+      }
+    }
   };
   return controller.initialize(modelJson);
 };

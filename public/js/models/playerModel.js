@@ -29,10 +29,12 @@ PlayersCollection = Backbone.Collection.extend({
   url: '/players',
 
   initialize: function() {
-    var serverFns = ['getCurrentArtist',
+    var _this = this,
+        serverFns = ['getCurrentArtist',
                      'hasNextArtist',
                      'getNextArtist',
                      'decideArtistOrder'];
+
     _u.extend(this, Backbone.Events);
     _u.bindAll(this,
                'getLeader',
@@ -48,6 +50,9 @@ PlayersCollection = Backbone.Collection.extend({
       if (this[fn]) {
         _u.bind(this[fn], this);
       }
+    });
+    this.bind('remove', function(models) {
+      _this.trigger('removedPlayer', models);
     });
   },
 
@@ -84,7 +89,6 @@ PlayersCollection = Backbone.Collection.extend({
 
   playerDisconnect: function(id) {
     var playerToRemove = this.get(id);
-    console.log('playerdisconnect');
     if (playerToRemove) {
       this.remove(playerToRemove);
     }

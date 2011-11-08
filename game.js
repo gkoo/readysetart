@@ -8,6 +8,8 @@
 // TODO: a way to restart the game
 // TODO: handle case where currArtist disconnects
 // TODO: handle case where leader disconnects
+// TODO: figure out messaging that says "leader will start the game."
+//       ("how do i draw" whenever someone looks at it)
 
 var socketio = require('socket.io'),
     _u       = require('underscore'),
@@ -201,7 +203,8 @@ GameController = function() {
     read: function(data, socket) {
       if (data.model.type === 'game') {
         socket.emit('readResponse', { 'type': 'game',
-                                      'model': this.model });
+                                      'model': this.model,
+                                      'userId': socket.id });
       }
     },
 

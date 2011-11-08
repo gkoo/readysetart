@@ -83,7 +83,10 @@ a {
 }
 
 .player.currUser {
-  color: #f00;
+  font-weight: bold;
+}
+.player.leader {
+  color: #0c0;
 }
 
 .chat {
