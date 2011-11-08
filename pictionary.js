@@ -8,6 +8,8 @@ module.exports = (function() {
     },
     listen: function(socket) {
       socket.on('newStrokePub', function(segment) {
+        console.log('\n\n\nNewStrokePub');
+        console.log(segment);
         socket.broadcast.emit('newStrokeSub', segment);
       });
       socket.on('clearBoard', function() {
