@@ -70,6 +70,8 @@ GameController = function() {
             initInfo,
             gameStatusModel = _this.model.get('gameStatus');
 
+        console.log('\n\n\n\nnew player');
+        console.log(socket);
         initInfo= { 'id':          yourId,
                     'name':        yourName,
                     'isLeader':    !players.length };
@@ -80,6 +82,8 @@ GameController = function() {
         console.log('emitting userId');
         socket.emit('userId', yourId);
 
+        console.log('\n\n\n\nnewPlayer');
+        console.log(initInfo);
         socket.broadcast.emit('newPlayer', initInfo); // Sends to everyone except for new user
 
         // LISTENERS
