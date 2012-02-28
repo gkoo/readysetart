@@ -12,8 +12,7 @@
 // TODO: figure out messaging that says "leader will start the game."
 //       ("how do i draw" whenever someone looks at it)
 
-var socketio = require('socket.io'),
-    _u       = require('underscore'),
+var _u       = require('underscore'),
     pict     = require('./pictionary.js'),
     chatLib  = require('./chat.js'),
     Backbone = require('backbone'),
@@ -26,18 +25,17 @@ var socketio = require('socket.io'),
     TURN_DURATION  = 30000,
 
 GameModel = Backbone.Model.extend({
-  initialize: function() {
+  initialize: function () {
     this.set({ 'players':      new playerLib.PlayersCollection(),
-               'chat':         new chatLib.ChatModel(),
                'gameStatus':   new gameStatusLib.GameStatusModel({ 'turnDuration': TURN_DURATION }),
              });
   }
 }),
 
-GameController = function() {
+GameController = function () {
   var controller = {
-    initialize: function() {
-      var chatModel, _this = this;
+    initialize: function () {
+      var _this = this;
       _u.bindAll(this,
                  'sendNextWord',
                  'sync',
@@ -47,44 +45,35 @@ GameController = function() {
                  'doCheckGuesses');
 
       this.model = new GameModel();
-
-      chatModel = this.model.get('chat');
-      chatModel.bind('newMessages', this.doCheckGuesses);
       return this;
     },
 
     // just proxy to socket.io
-    listen: function(app) {
-      var _this = this,
-          chat;
+    listen: function (io) {
+      var _this = this;
 
-      io = socketio.listen(app);
-      io.set('transports', ['htmlfile', 'xhr-polling', 'jsonp-polling']);
-      //io.set('log level', 0); // prevent socket.io's log messages from cluttering the console output
-      io.sockets.on('connection', function(socket) {
-
+      io.of('/game').on('connection', function (socket) {
         var players   = _this.model.get('players'),
             yourId    = socket.id,
-            yourName  = 'Anonymous',
+            yourName  = 'Player ' + yourId,
             isLeader  = false,
             //yourTeam  = _this.computeUserTeam(yourId),
             initInfo,
             gameStatusModel = _this.model.get('gameStatus');
 
-        console.log('\n\n\n\nnew player');
-        console.log(socket);
-        initInfo= { 'id':          yourId,
-                    'name':        yourName,
-                    'isLeader':    !players.length };
-                    //'team': yourTeam };
+        console.log('\t[PICT] Player ' + yourId + ' connected to game');
+        initInfo = { 'id':       yourId,
+                     'name':     yourName,
+                     'isLeader': !players.length };
+                     //'team': yourTeam };
 
         players.add(initInfo);
 
-        console.log('emitting userId');
-        socket.emit('userId', yourId);
+        socket.emit('initGameModel', { 'type': 'game',
+                                       'model': _this.model,
+                                       'userId': socket.id });
 
-        console.log('\n\n\n\nnewPlayer');
-        console.log(initInfo);
+        _this.chatController.broadcastNewPlayer(initInfo);
         socket.broadcast.emit('newPlayer', initInfo); // Sends to everyone except for new user
 
         // LISTENERS
@@ -122,8 +111,8 @@ GameController = function() {
           }
         });
 
-        socket.on('setName', function(name) {
-          socket.get('id', function(err, id) {
+        socket.on('setName', function (name) {
+          socket.get('id', function (err, id) {
             var player;
 
             if (err) { console.log('[ERROR] ' + err); }
@@ -139,11 +128,11 @@ GameController = function() {
           });
         });
 
-        socket.on('printPlayers', function() {
+        socket.on('printPlayers', function () {
           console.log(_this.model.get('players').toJSON());
         });
 
-        socket.on('turnOver', function() {
+        socket.on('turnOver', function () {
           var nextArtist, newStatus, nextWord;
           if (players.hasNextArtist()) {
             nextArtist = players.getNextArtist();
@@ -158,7 +147,7 @@ GameController = function() {
           }
         });
 
-        socket.on('disconnect', function(data) {
+        socket.on('disconnect', function (data) {
           var i, len, player, id = socket.id;
 
           // Remove player from players array
@@ -171,20 +160,23 @@ GameController = function() {
           console.log(socket.id + ' disconnected');
         });
 
-        socket.on('sync', function(data) {
+        socket.on('sync', function (data) {
           _this.sync(data, socket);
         });
 
-        socket.on('debug', function() {
+        socket.on('debug', function () {
         });
 
         pict.listen(socket);
-        _this.model.get('chat').listen(socket);
-
       });
     },
 
-    sendNextWord: function() {
+    setChat: function (chat) {
+      this.chatController = chat;
+      this.chatController.bind('newMessages', this.doCheckGuesses);
+    },
+
+    sendNextWord: function () {
       var nextWord     = pict.wordBase.getUnusedWord(),
           playersModel = this.model.get('players'),
           currArtistId = playersModel.getCurrentArtist();
@@ -193,10 +185,10 @@ GameController = function() {
       io.sockets.socket(currArtistId).emit('wordToDraw', nextWord);
     },
 
-    endPlayerTurn: function() {
+    endPlayerTurn: function () {
     },
 
-    sync: function(data, socket) {
+    sync: function (data, socket) {
       if (data.method === 'read') {
         this.read(data, socket);
       }
@@ -205,7 +197,7 @@ GameController = function() {
       }
     },
 
-    read: function(data, socket) {
+    read: function (data, socket) {
       if (data.model.type === 'game') {
         socket.emit('readResponse', { 'type': 'game',
                                       'model': this.model,
@@ -213,7 +205,7 @@ GameController = function() {
       }
     },
 
-    update: function(data, socket) {
+    update: function (data, socket) {
       var player;
       if (data.model.type === 'player') {
         player = this.model.get('players').get(data.model.id);
@@ -224,7 +216,7 @@ GameController = function() {
     },
 
     /*
-    computeUserTeam: function(userId) {
+    computeUserTeam: function (userId) {
       var teams = this.model.get('teams'),
           minPlayerTeam = teams.getMinPlayerTeam(), // team with the fewest players
           players;
@@ -237,7 +229,7 @@ GameController = function() {
     },
     */
 
-    updatePlayer: function(o, res) {
+    updatePlayer: function (o, res) {
       var player;
       try {
         player = this.model.get('players').get(o.id);
@@ -250,7 +242,7 @@ GameController = function() {
       }
     },
 
-    doCheckGuesses: function(o) {
+    doCheckGuesses: function (o) {
       var messages     = o.messages,
           currArtistId = this.model.get('players').getCurrentArtist();
 

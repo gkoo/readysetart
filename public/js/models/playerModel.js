@@ -52,7 +52,7 @@ PlayersCollection = Backbone.Collection.extend({
       }
     });
     this.bind('remove', function(models) {
-      _this.trigger('removedPlayer', models);
+      _this.trigger('player:removedPlayer', models);
     });
   },
 
@@ -65,6 +65,8 @@ PlayersCollection = Backbone.Collection.extend({
   setPlayerName: function(o) {
     var playerModel = this.get(o.id);
     if (playerModel) {
+      this.trigger('player:changeName', { oldName: playerModel.get('name'),
+                                          newName: o.name });
       playerModel.save({ 'name': o.name });
     }
     else {

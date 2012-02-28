@@ -9,7 +9,6 @@ var GameIntroView = Backbone.View.extend({
   },
 
   handleName: function(evt) {
-    // Why is this handler getting called multiple times???
     evt.preventDefault();
     evt.stopPropagation();
 

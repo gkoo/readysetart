@@ -1,18 +1,24 @@
-var GameController = function(socket) {
+var gameSocket,
+    chatSocket,
+
+GameController = function() {
   var controller = {
-    initialize: function(socket) {
+    initialize: function() {
       _.extend(this, Backbone.Events);
       _.bindAll(this,
                 'setupViews',
                 'setupGameState',
                 'initEvents',
-                'readResponse',
+                'handleGameModel',
                 'getCurrPlayer',
                 'getPlayerById',
                 'setupSocketEvents',
                 'notifyCorrectGuess',
                 'handleTurnOver');
       this.model = new GameModel();
+      gameSocket = io.connect('http://localhost:8080/game');
+      chatSocket = io.connect('http://localhost:8080/chat');
+      this.gameSocket = gameSocket;
       this.setupSocketEvents();
       return this;
     },
@@ -45,7 +51,7 @@ var GameController = function(socket) {
     },
 
     setupGameState: function(gameData) {
-      var playerHelperFns, teams, chat;
+      var playerHelperFns;
 
       this.gameStatus  = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
@@ -54,10 +60,11 @@ var GameController = function(socket) {
       playerHelperFns  = { 'currPlayer': this.currPlayer,
                            'getPlayerById': this.getPlayerById };
       // teams = _.extend(gameData.teams, playerHelperFns),
-      chat = _.extend(gameData.chat, playerHelperFns);
+
+      this.chatController = new ChatController(chatSocket);
+      _.extend(this.chatController, playerHelperFns);
 
       // this.teamsColl      = new TeamCollection(teams);
-      this.chatController = new ChatController(chat);
       this.setupViews();
       this.initEvents();
     },
@@ -66,58 +73,54 @@ var GameController = function(socket) {
     setupSocketEvents: function() {
       var _this = this;
 
-      socket.on('connect', function() {
-        _this.model.fetch();
-      });
-
-      socket.on('disconnect', function() {
+      _this.gameSocket.on('disconnect', function() {
         console.log('disconnect');
         //var name = prompt('What is your name?');
       });
 
-      socket.on('readResponse', this.readResponse);
+      _this.gameSocket.on('initGameModel', this.handleGameModel);
 
-      socket.on('userId', function(id) {
+      _this.gameSocket.on('userId', function(id) {
         _this.userId = id;
       });
 
-      socket.on('yourTurn', function () {
+      _this.gameSocket.on('yourTurn', function () {
         _this.trigger('yourTurn');
       });
 
-      socket.on('gameStatus', function (o) {
+      _this.gameSocket.on('gameStatus', function (o) {
         _this.trigger('gameStatus', o);
       });
 
-      socket.on('playerUpdate', function(player) {
+      _this.gameSocket.on('playerUpdate', function(player) {
         _this.trigger('playerUpdate', player);
       });
 
-      socket.on('newPlayer', function(o) {
+      _this.gameSocket.on('newPlayer', function(o) {
         _this.trigger('newPlayer', o);
       });
 
-      socket.on('playerDisconnect', function(id) {
+      _this.gameSocket.on('playerDisconnect', function(id) {
         _this.trigger('playerDisconnect', id);
       });
 
-      socket.on('playerName', function(o) {
+      _this.gameSocket.on('playerName', function(o) {
         _this.trigger('playerName', o);
       });
 
-      socket.on('newStrokeSub', function(o) {
+      _this.gameSocket.on('newStrokeSub', function(o) {
         _this.trigger('newStrokeSub', o);
       });
 
-      socket.on('wordToDraw', function(word) {
+      _this.gameSocket.on('wordToDraw', function(word) {
         _this.trigger('wordToDraw', word);
       });
 
-      socket.on('clearBoard', function() {
+      _this.gameSocket.on('clearBoard', function() {
         _this.trigger('clearBoard');
       });
 
-      socket.on('notifyCorrectGuess', function(o) {
+      _this.gameSocket.on('notifyCorrectGuess', function(o) {
         _this.trigger('notifyCorrectGuess', o);
       });
     },
@@ -130,7 +133,7 @@ var GameController = function(socket) {
       });
 
       this.bind('endTurn', function() {
-        socket.emit('endTurn');
+        _this.gameSocket.emit('endTurn');
         _this.toggleYourTurn(false);
       });
 
@@ -145,7 +148,10 @@ var GameController = function(socket) {
       this.bind('playerUpdate', this.playersColl.playerUpdate);
       this.bind('playerName',   this.playersColl.setPlayerName);
       this.bind('playerDisconnect', this.playersColl.playerDisconnect);
-      this.playersColl.bind('removedPlayer', this.chatController.handlePlayerDisconnect);
+      // Communicate with chat this way so that we can display the name of the
+      // player that left
+      this.playersColl.bind('player:removedPlayer', this.chatController.handlePlayerDisconnect);
+      this.playersColl.bind('player:changeName', this.chatController.handleNameChange);
 
       // TeamCollection Events
       //this.bind('newPlayer', this.teamsColl.addPlayer);
@@ -174,23 +180,19 @@ var GameController = function(socket) {
       this.gameControls.bind('gameStatus', this.gameStatusController.setGameStatus);
     },
 
-    readResponse: function(data) {
+    handleGameModel: function(data) {
       var players, teams;
       if (!data || !data.type || !data.model) {
         console.log('[err] couldn\'t detect data');
         return;
       }
       if (data.type === 'game') {
-        try {
-          this.setupGameState(data.model);
+        this.userId = data.userId;
+        this.setupGameState(data.model);
 
-          // set leader
-          if (this.getCurrPlayer().get('isLeader')) {
-            this.gameControls.showControls();
-          }
-        }
-        catch (e) {
-          console.log(e);
+        // set leader
+        if (this.getCurrPlayer().get('isLeader')) {
+          this.gameControls.showControls();
         }
       }
     },
@@ -222,24 +224,29 @@ var GameController = function(socket) {
     broadcastStroke: function(segments) {
       console.log('emitting newStrokePub');
       console.log(segments);
-      socket.emit('newStrokePub', segments);
+      this.gameSocket.emit('newStrokePub', segments);
     },
 
     broadcastClearBoard: function(segments) {
-      socket.emit('clearBoard');
+      this.gameSocket.emit('clearBoard');
     },
 
     notifyCorrectGuess: function(o) {
-      this.chatController.notifyCorrectGuess(o);
+      //this.chatController.notifyCorrectGuess(o);
     },
 
     handleTurnOver: function() {
-      socket.emit('turnOver');
+      this.gameSocket.emit('turnOver');
     },
 
     debug: function() {
-      socket.emit('debug');
+      this.gameSocket.emit('debug');
     }
   };
-  return controller.initialize(socket);
+  return controller.initialize();
+};
+
+Backbone.sync = function(method, model) {
+  console.log('syncing...');
+  gameSocket.emit('sync', { 'model': model, 'method': method });
 };

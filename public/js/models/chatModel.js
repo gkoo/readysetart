@@ -1,74 +1,63 @@
-var MessageModel = Backbone.Model.extend(),
-
-MessageCollection = Backbone.Collection.extend({
-  model: MessageModel,
-
-  initialize: function() {
-    _.extend(this, Backbone.Events);
-  },
-
-  comparator: function(message) {
-    return message.get('time') || 0;
-  }
-}),
-
-ChatModel = Backbone.Model.extend({
+var MessageCollection = Backbone.Collection.extend({
   initialize: function() {
     var _this = this;
-
-    _.bindAll(this,
-              'addMessage',
-              'addMessages');
-
     _.extend(this, Backbone.Events);
-    this.set({ 'outboundMessages': [] });
-    this.get('messages').bind('add', function(msg) {
+    _.bindAll(this, 'addMessage', 'flushOutboundMessages');
+    this.bind('add', function(msg) {
       _this.trigger('addMessage', msg);
     });
   },
 
-  addMessages: function(newMessages) {
-    this.get('messages').add(newMessages);
+  outboundMessages: [],
+
+  comparator: function(message) {
+    return message.get('time') || 0;
   },
 
-  addMessage: function(msg) {
-    // if msg is typeof String, treat as single message.
+  addMessage: function(o, addToOutbound) {
+    // if msg is typeof Object and has a msg, treat as single message.
     // if msg is typeof Object and has a length, treat as an array of messages.
-    try {
-    var messages       = this.get('messages'),
-        newMessages    = this.get('outboundMessages'),
-        currPlayerId   = this.currPlayer.id,
-        name           = this.currPlayer.get('name'),
-        date           = (new Date()).getTime(),
-        sender, msgObj, msgObjList;
+    var date = (new Date()).getTime(),
+        _this = this,
+        sender, msgObjList;
 
-    if (typeof msg === 'string') {
-      msgObj = { message: msg,
-                 sender:  currPlayerId,
-                 name:    name,
+    if (o.msg) {
+      msgObj = { msg: o.msg,
+                 sender:  o.id,
+                 name:    o.name,
                  time:    date };
 
-      messages.add(msgObj);
-      newMessages.push(msgObj);
+      this.add(msgObj);
+      if (addToOutbound) { this.outboundMessages.push(msgObj); }
     }
-    else if (typeof msg === 'object' && msg.length) {
+    else if (typeof o === 'object' && o.length) {
       msgObjList = [];
-      _.each(msg, function(m) {
-        msgObj = { message: m,
-                   sender:  currPlayerId,
-                   name: name,
-                   time: date };
-
+      _.each(o, function(msgObj) {
         msgObjList.push(msgObj);
-        newMessages.push(msgObj);
+        if (addToOutbound) { _this.outboundMessages.push(msgObj); }
       });
-      messages.add(msgObjList);
+      this.add(msgObjList);
     }
 
     // TODO: associate message with name.
+  },
+
+  // add a message not associated with any sender
+  addSysMessage: function(str, addToOutbound) {
+    msg = { msg: str,
+            sender: -1,
+            name: '',
+            time: (new Date()).getTime() };
+    this.add(msg);
+    if (addToOutbound) {
+      this.outboundMessages.push(msgObj);
     }
-    catch(e) {
-      console.log(e);
-    }
+  },
+
+  // Returns outbound message buffer and clears it.
+  flushOutboundMessages: function () {
+    var outbound = this.outboundMessages;
+    this.outboundMessages = [];
+    return outbound;
   }
 });

@@ -1,63 +1,75 @@
 var _u = require('underscore'),
     Backbone = require('backbone'),
 
-MessageModel = Backbone.Model.extend(),
-
 MessageCollection = Backbone.Collection.extend({
-  model: MessageModel,
+  initialize: function() {
+    _u.bindAll(this, 'addMessages');
+    this.bufferLength = 10;
+  },
+
   comparator: function(message) {
     return message.get('time') || 0;
-  }
-});
-
-module.exports.ChatModel = Backbone.Model.extend({
-  initialize: function(o) {
-    _u.extend(this, Backbone.Events);
-    _u.bindAll(this,
-               'addMessages',
-               'listen',
-               'handleCorrectGuess');
-
-    this.set({ 'messages': new MessageCollection(),
-               'bufferLength': 10 });
   },
 
   addMessages: function(newMessages) {
-    var bufLength = this.get('bufferLength'),
-        messagesColl = this.get('messages'),
-        numMessages = messagesColl.length,
+    var bufLength = this.bufferLength,
+        numMessages = this.length,
         modelsToRemove, i, len;
 
-    messagesColl.add(newMessages);
+    this.add(newMessages);
 
     if (numMessages > bufLength) {
-      modelsToRemove = messagesColl.models.slice(0, numMessages-bufLength);
-      messagesColl.remove(modelsToRemove);
+      modelsToRemove = this.models.slice(0, numMessages-bufLength);
+      this.remove(modelsToRemove);
     }
   },
+
+}),
+
+ChatController = function () {
+  var _this = this,
+      io;
 
   // Function: listen
   // ================
   // Takes a Socket.IO object and listens on the 'chat'
   // namespace.
-  listen: function(socket) {
-    var _this = this;
-    socket.on('newMessages', function(newMessages) {
-      if (!newMessages || !newMessages.length) {
-        console.log('[err] empty newMessages in chat');
-      }
-      else {
-        _this.addMessages(newMessages);
-        _this.trigger('newMessages', { 'messages': newMessages,
-                                       'callback': _this.handleCorrectGuess,
-                                       'socket':   socket });
-        socket.broadcast.emit('incomingMessages', newMessages);
-      }
+  this.listen = function (socketio) {
+    io = socketio;
+    socketio.of('/chat').on('connection', function(socket) {
+      console.log('\n\n\nchat connected');
+      socket.on('newMessages', function(newMessages) {
+        if (!newMessages || !newMessages.length) {
+          console.log('[err] empty newMessages in chat');
+        }
+        else {
+          _this.collection.addMessages(newMessages);
+          _this.trigger('newMessages', { 'messages': newMessages,
+                                         'callback': _this.handleCorrectGuess,
+                                         'socket':   socket });
+          console.log('emitting incoming');
+          socket.broadcast.emit('incomingMessages', newMessages);
+        }
+      });
     });
-  },
+  };
 
-  handleCorrectGuess: function(correctGuess, socket) {
+  this.handleCorrectGuess = function(correctGuess, socket) {
     socket.emit('notifyCorrectGuess', correctGuess);
     socket.broadcast.emit('notifyCorrectGuess', correctGuess);
-  }
-});
+  };
+
+  this.broadcastNewPlayer = function (playerInfo) {
+    io.sockets.emit('newPlayer', playerInfo);
+  };
+
+  this.initialize = function () {
+    _u.extend(this, Backbone.Events);
+    this.collection = new MessageCollection();
+    return this;
+  };
+
+  return this.initialize();
+};
+
+module.exports = new ChatController();

@@ -20,7 +20,7 @@ var ChatView = Backbone.View.extend({
 
   render: function() {
     this.chatWindow.empty();
-    this.model.get('messages').each(this.renderNewMessage);
+    this.collection.each(this.renderNewMessage);
   },
 
   renderNewMessage: function(messageStr) {
@@ -32,8 +32,14 @@ var ChatView = Backbone.View.extend({
     var sender = message.get('sender'),
         name   = message.get('name'),
         time   = message.get('time'),
-        text   = message.get('message');
-    this.renderNewMessage([name, text].join(': '));
+        text   = message.get('msg');
+
+    if (name) {
+      this.renderNewMessage([name, text].join(': '));
+    }
+    else {
+      this.renderNewMessage(text);
+    }
   },
 
   getPlayerNameById: function(id) {

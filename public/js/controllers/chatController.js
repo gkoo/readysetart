@@ -1,42 +1,53 @@
-var ChatController = function(modelJson) {
+var ChatController = function(chatSocket) {
   var controller = {
-    initialize: function(chatModelJson) {
+    BUFFER_LENGTH: 10, // what does this do again?
+
+    initialize: function(socket) {
       var _this = this;
-      try {
-        _.bindAll(this, 'handlePlayerDisconnect');
-        this.model = new ChatModel({ bufferLength: chatModelJson.bufferLength,
-                                     messages:     new MessageCollection(chatModelJson.messages) });
-        this.view  = new ChatView({ el: $('#chat-container'),
-                                    model: this.model });
+      this.chatSocket = socket;
+      _.bindAll(this, 'setupSocketEvents',
+                      'addUserMessageToModel',
+                      'handleNameChange',
+                      'handlePlayerDisconnect');
+      this.collection = new MessageCollection({ bufferLength: this.BUFFER_LENGTH });
 
-        this.model.currPlayer = chatModelJson.currPlayer;
-        this.model.getPlayerById = chatModelJson.getPlayerById;
+      this.view  = new ChatView({ el: $('#chat-container'),
+                                  collection: this.collection });
 
-        this.view.bind('submitMessage', this.model.addMessage);
-        this.model.bind('addMessage', this.view.addChatMessage);
+      this.view.bind('submitMessage', this.addUserMessageToModel);
+      this.collection.bind('addMessage', this.view.addChatMessage);
 
-        setInterval(function() {
-          var newMessages = _this.model.get('outboundMessages');
-          if (newMessages && newMessages.length) {
-            socket.emit('newMessages', newMessages); // send message to server
-            _this.model.set({ 'outboundMessages': [] }); // reset unsent messages
-          }
-        }, 500);
-
-        this.setupIncomingSocketEvents();
-      }
-      catch(e) {
-        console.log(e);
-      }
+      setInterval(function() {
+        var newMessages = _this.collection.flushOutboundMessages();
+        if (newMessages && newMessages.length) {
+          _this.chatSocket.emit('newMessages', newMessages); // send message to server
+        }
+      }, 500);
+      this.setupSocketEvents();
       return this;
+    },
+
+    setupSocketEvents: function () {
+      var _this = this;
+      this.chatSocket.on('connect', function() {
+        console.log('chat connected');
+      });
+      this.chatSocket.on('newPlayer', function(info) {
+        _this.model.addSysMessage(info.name + ' has joined the room.');
+      });
+      this.chatSocket.on('incomingMessages', this.collection.addMessage);
+    },
+
+    // called by chat view when user enters in a message
+    addUserMessageToModel: function(msgStr) {
+      this.collection.addMessage({ msg: msgStr,
+                                   id: this.currPlayer.id,
+                                   name: this.currPlayer.get('name') },
+                                 true);
     },
 
     notifyCorrectGuess: function(o) {
       this.view.displayCorrectGuess(o);
-    },
-
-    setupIncomingSocketEvents: function() {
-      socket.on('incomingMessages', this.model.addMessages);
     },
 
     handlePlayerDisconnect: function(model) {
@@ -48,9 +59,13 @@ var ChatController = function(modelJson) {
       }
       else {
         // just one model
-        this.view.renderNewMessage(model.get('name') + ' has left the game.');
+        this.view.renderNewMessage(model.get('name') + ' has left the room.');
       }
+    },
+
+    handleNameChange: function(o) {
+      this.view.renderNewMessage(o.oldName + ' changed name to ' + o.newName + '.');
     }
   };
-  return controller.initialize(modelJson);
+  return controller.initialize(chatSocket);
 };
