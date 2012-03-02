@@ -33,7 +33,7 @@ var ChatController = function(chatSocket) {
         console.log('chat connected');
       });
       this.chatSocket.on('newPlayer', function(info) {
-        _this.model.addSysMessage(info.name + ' has joined the room.');
+        _this.collection.addSysMessage(info.name + ' has joined the room.');
       });
       this.chatSocket.on('incomingMessages', this.collection.addMessage);
     },
@@ -64,7 +64,7 @@ var ChatController = function(chatSocket) {
     },
 
     handleNameChange: function(o) {
-      this.view.renderNewMessage(o.oldName + ' changed name to ' + o.newName + '.');
+      this.collection.addSysMessage(o.oldName + ' changed name to ' + o.newName + '.', true);
     }
   };
   return controller.initialize(chatSocket);

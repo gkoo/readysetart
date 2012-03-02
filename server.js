@@ -3,10 +3,10 @@
  * Module dependencies.
  */
 
-var app = require('./routes.js'),
-    socketio = require('socket.io').listen(app),
-    game = require('./game.js'),
-    chat = require('./chat.js');
+var app         = require('./routes.js'),
+    socketio    = require('socket.io').listen(app),
+    pictionary  = require('./pictionary.js'),
+    chat        = require('./chat.js');
 
 socketio.set('transports', ['htmlfile',
                             'xhr-polling',
@@ -15,7 +15,7 @@ socketio.set('transports', ['htmlfile',
 // prevent socket.io's log messages from cluttering the console output
 socketio.set('log level', 0);
 
-game.listen(socketio);
+pictionary.listen(socketio)
+          .setChat(chat);
 chat.listen(socketio);
 
-game.setChat(chat);

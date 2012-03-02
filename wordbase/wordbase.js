@@ -77,7 +77,7 @@ module.exports = (function() {
       if (this.currentWord) {
         for (i=0, len=messages.length; i<len; ++i) {
           newMessage = messages[i];
-          if (newMessage.message.toLowerCase() === this.currentWord.toLowerCase()) {
+          if (newMessage.msg.toLowerCase() === this.currentWord.toLowerCase()) {
             // Correct guess!
             guessed = true;
             message = newMessage;

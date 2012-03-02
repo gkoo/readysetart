@@ -18,8 +18,9 @@ var GameControlsView = Backbone.View.extend({
   },
 
   doStartGame: function() {
-    socket.emit('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
-    this.trigger('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
+    var data = { 'gameStatus': GameStatusEnum.IN_PROGRESS };
+    this.trigger('gameStatus', { 'eventName': 'gameStatus',
+                                 'data': data });
     this.updateControls(GameStatusEnum.IN_PROGRESS);
   },
 

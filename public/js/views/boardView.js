@@ -43,7 +43,7 @@ var BoardView = Backbone.View.extend({
 
   clearBoard: function() {
     this.doClear();
-    this.trigger('clearBoard');
+    this.trigger('clearBoard', { 'eventName': 'clearBoard' });
   },
 
   mouseDown: function(evt) {
@@ -75,7 +75,8 @@ var BoardView = Backbone.View.extend({
 
         segments.push(segment);
       }
-      this.trigger('newStrokePub', segments);
+      this.trigger('newStrokePub', { 'eventName': 'newStrokePub',
+                                     'data': segments });
     }
   },
 

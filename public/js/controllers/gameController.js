@@ -12,6 +12,7 @@ GameController = function() {
                 'handleGameModel',
                 'getCurrPlayer',
                 'getPlayerById',
+                'emitGameEvent',
                 'setupSocketEvents',
                 'notifyCorrectGuess',
                 'handleTurnOver');
@@ -157,8 +158,8 @@ GameController = function() {
       //this.bind('newPlayer', this.teamsColl.addPlayer);
 
       // Board Events
-      this.boardView.bind('newStrokePub', this.broadcastStroke);
-      this.boardView.bind('clearBoard', this.broadcastClearBoard);
+      this.boardView.bind('newStrokePub', this.emitGameEvent);
+      this.boardView.bind('clearBoard', this.emitGameEvent);
       this.boardView.bind('debug', this.debug);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
@@ -176,7 +177,8 @@ GameController = function() {
       this.bind('gameStatus', this.gameControls.updateControls);
       this.bind('notifyCorrectGuess', this.notifyCorrectGuess);
 
-      // Game Control Events
+      // Game Controls Events
+      this.gameControls.bind('gameStatus', this.emitGameEvent);
       this.gameControls.bind('gameStatus', this.gameStatusController.setGameStatus);
     },
 
@@ -221,14 +223,22 @@ GameController = function() {
       }
     },
 
-    broadcastStroke: function(segments) {
-      console.log('emitting newStrokePub');
-      console.log(segments);
-      this.gameSocket.emit('newStrokePub', segments);
-    },
-
-    broadcastClearBoard: function(segments) {
-      this.gameSocket.emit('clearBoard');
+    /* emitGameEvent
+     * ==================
+     * Generic handler for emitting a game event to Socket.IO.
+     * Expects an object with two properties: eventName, the name
+     * of the Socket.IO event to which to broadcast, and data,
+     * the data to attach to the event.
+     */
+    emitGameEvent: function (o) {
+      if (o.eventName) {
+        if (o.data) {
+          this.gameSocket.emit(o.eventName, o.data);
+        }
+        else {
+          this.gameSocket.emit(o.eventName);
+        }
+      }
     },
 
     notifyCorrectGuess: function(o) {
@@ -243,6 +253,7 @@ GameController = function() {
       this.gameSocket.emit('debug');
     }
   };
+
   return controller.initialize();
 };
 

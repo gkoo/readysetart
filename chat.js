@@ -35,8 +35,8 @@ ChatController = function () {
   // Takes a Socket.IO object and listens on the 'chat'
   // namespace.
   this.listen = function (socketio) {
-    io = socketio;
-    socketio.of('/chat').on('connection', function(socket) {
+    io = socketio.of('/chat'); // SocketNamespace
+    io.on('connection', function(socket) {
       console.log('\n\n\nchat connected');
       socket.on('newMessages', function(newMessages) {
         if (!newMessages || !newMessages.length) {
@@ -55,12 +55,15 @@ ChatController = function () {
   };
 
   this.handleCorrectGuess = function(correctGuess, socket) {
-    socket.emit('notifyCorrectGuess', correctGuess);
-    socket.broadcast.emit('notifyCorrectGuess', correctGuess);
+    io.emit('notifyCorrectGuess', correctGuess);
   };
 
   this.broadcastNewPlayer = function (playerInfo) {
-    io.sockets.emit('newPlayer', playerInfo);
+    io.emit('newPlayer', playerInfo);
+  };
+
+  this.log = function(str) {
+    console.log('[CHAT] ' + str);
   };
 
   this.initialize = function () {

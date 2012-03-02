@@ -50,7 +50,7 @@ var MessageCollection = Backbone.Collection.extend({
             time: (new Date()).getTime() };
     this.add(msg);
     if (addToOutbound) {
-      this.outboundMessages.push(msgObj);
+      this.outboundMessages.push(msg);
     }
   },
 
