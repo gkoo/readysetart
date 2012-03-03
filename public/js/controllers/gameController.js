@@ -1,4 +1,4 @@
-var debug = 1,
+var debug = 0,
     gameSocket,
     chatSocket,
 
