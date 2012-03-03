@@ -9,9 +9,9 @@
   "dependencies": {
     "express": "2.3.12",
     "jade": "0.13.0",
-    "connect": "1.6.0",
+    "connect": "1.8.5",
     "mime": "1.2.2",
-    "qs": "0.3.0",
+    "qs": "0.4.2",
     "underscore": "1.1.7",
     "backbone": "0.5.3",
     "uglify-js": "1.0.3",
