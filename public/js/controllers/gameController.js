@@ -1,4 +1,4 @@
-var debug = 0,
+var debug = 1,
     gameSocket,
     chatSocket,
 
@@ -29,43 +29,39 @@ GameController = function() {
     setupViews: function() {
       // At this point, the models should be set up already as a result of the
       // fetch. We just need to populate the views with them now.
-      try {
-        // I decided I want to implement free-for-all first, since it will be
-        // easier. If I have time, I'll come back to teams in the future.
-        this.playersView = new PlayersView({ el: $('.playerInfo'),
-                                             collection: this.playersColl,
-                                             getCurrPlayer: this.getCurrPlayer });
 
-        /*
-        this.teamsView    = new TeamsView({ el:            $('.teamsList'),
-                                            collection:    this.teamsColl,
-                                            getPlayerById: this.getPlayerById });
-        */
+      // I decided I want to implement free-for-all first, since it will be
+      // easier. If I have time, I'll come back to teams in the future.
+      this.playersView = new PlayersView({ el: $('.playerInfo'),
+                                           collection: this.playersColl,
+                                           getCurrPlayer: this.getCurrPlayer });
 
-        this.gameControls         = new GameControlsView({ el: $('#controls') });
-        this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
-                                                               getPlayerById: this.getPlayerById,
-                                                               getCurrPlayer:  this.getCurrPlayer });
-        this.gameIntro            = new GameIntroView({ el: $('#intro') });
-        this.boardView            = new BoardView({ el: $('#board') });
-      } catch (e) {
-        console.log(e);
-      }
+      /*
+      this.teamsView    = new TeamsView({ el:            $('.teamsList'),
+                                          collection:    this.teamsColl,
+                                          getPlayerById: this.getPlayerById });
+      */
+
+      this.gameControls         = new GameControlsView({ el: $('#controls') });
+      this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
+                                                             getPlayerById: this.getPlayerById,
+                                                             getCurrPlayer:  this.getCurrPlayer });
+      this.gameIntro            = new GameIntroView({ el: $('#intro') });
+      this.boardView            = new BoardView({ el: $('#board') });
+      _.extend(this.boardView, this.playerHelperFns);
     },
 
     setupGameState: function(gameData) {
-      var playerHelperFns;
-
       this.gameStatus  = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
       this.currPlayer  = this.playersColl.get(this.userId);
+      this.playerHelperFns = { 'currPlayer':    this.currPlayer,
+                               'getPlayerById': this.getPlayerById };
 
-      playerHelperFns  = { 'currPlayer': this.currPlayer,
-                           'getPlayerById': this.getPlayerById };
       // teams = _.extend(gameData.teams, playerHelperFns),
 
       this.chatController = new ChatController(chatSocket);
-      _.extend(this.chatController, playerHelperFns);
+      _.extend(this.chatController, this.playerHelperFns);
 
       // this.teamsColl      = new TeamCollection(teams);
       this.setupViews();
@@ -115,6 +111,14 @@ GameController = function() {
         _this.trigger('newStrokeSub', o);
       });
 
+      _this.gameSocket.on('newPoints', function(o) {
+        _this.trigger('newPoints', o);
+      });
+
+      _this.gameSocket.on('completedPath', function(o) {
+        _this.trigger('completedPath', o);
+      });
+
       _this.gameSocket.on('wordToDraw', function(word) {
         _this.trigger('wordToDraw', word);
       });
@@ -160,9 +164,13 @@ GameController = function() {
       //this.bind('newPlayer', this.teamsColl.addPlayer);
 
       // Board Events
-      this.boardView.bind('newStrokePub', this.emitGameSocketEvent);
-      this.boardView.bind('clearBoard', this.emitGameSocketEvent);
-      this.boardView.bind('debug', this.debug);
+      this.boardView.bind('boardView:newStrokePub', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:clearBoard', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:sendPoints', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:completedPath', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:debug', this.debug);
+      this.bind('newPoints', this.boardView.handleNewPoints);
+      this.bind('completedPath', this.boardView.handleCompletedPath);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);

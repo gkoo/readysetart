@@ -49,6 +49,6 @@ var GameControlsView = Backbone.View.extend({
   },
 
   showControls: function() {
-    this.el.show();
+    this.$el.show();
   }
 });

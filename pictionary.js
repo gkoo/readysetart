@@ -107,7 +107,6 @@ Pictionary = function () {
     this.io = io.of('/game');
 
     this.io.on('connection', (function (socket) {
-      console.log('pictionary connected');
       var players   = this.model.get('players'),
           yourId    = socket.id,
           yourName  = 'Player ' + yourId,
@@ -116,7 +115,6 @@ Pictionary = function () {
           initInfo,
           gameStatusModel = this.model.get('gameStatus');
 
-      console.log('\t[PICT] Player ' + yourId + ' connected to game');
       initInfo = { 'id':       yourId,
                    'name':     yourName,
                    'isLeader': isLeader };
@@ -189,10 +187,21 @@ Pictionary = function () {
       socket.on('debug', function () {
       });
 
-      socket.on('newStrokePub', function(segment) {
-        console.log('\n\n\nNewStrokePub');
-        console.log(segment);
-        socket.broadcast.emit('newStrokeSub', segment);
+      //socket.on('newStrokePub', function(segment) {
+        //console.log('\n\n\nNewStrokePub');
+        //console.log(segment);
+        //socket.broadcast.emit('newStrokeSub', segment);
+      //});
+
+      socket.on('newPoints', function (data) {
+        socket.broadcast.emit('newPoints', { 'senderId': socket.id,
+                                             'points': data });
+      });
+
+      // Client has completed drawing a path.
+      socket.on('completedPath', function (o) {
+        socket.broadcast.emit('completedPath', { 'senderId': socket.id,
+                                                 'points': o });
       });
 
       socket.on('clearBoard', function() {

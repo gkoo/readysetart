@@ -14,7 +14,7 @@ var GameIntroView = Backbone.View.extend({
 
     this.trigger('setName', this.$('.nameField').val());
 
-    this.el.hide();
+    this.$el.hide();
     this.unbind();
     this.$('#nameForm').unbind();
   }

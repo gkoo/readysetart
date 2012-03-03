@@ -31,7 +31,7 @@ var GameStatusView = Backbone.View.extend({
         console.log('[err] Couldn\'t find player matching currArtist Id.');
       }
     }
-    this.el.show();
+    this.$el.show();
   },
 
   renderTimeLeft: function() {
