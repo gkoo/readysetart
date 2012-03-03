@@ -1,9 +1,11 @@
-var gameSocket,
+var debug = 1,
+    gameSocket,
     chatSocket,
 
 GameController = function() {
   var controller = {
     initialize: function() {
+      var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com/';
       _.extend(this, Backbone.Events);
       _.bindAll(this,
                 'setupViews',
@@ -17,8 +19,8 @@ GameController = function() {
                 'notifyCorrectGuess',
                 'handleTurnOver');
       this.model = new GameModel();
-      gameSocket = io.connect('http://localhost:8080/game');
-      chatSocket = io.connect('http://localhost:8080/chat');
+      gameSocket = io.connect(domainPrefix + '/game');
+      chatSocket = io.connect(domainPrefix + '/chat');
       this.gameSocket = gameSocket;
       this.setupSocketEvents();
       return this;
