@@ -24,10 +24,9 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  res.send('hello world');
-  //res.render('index', {
-    //title: 'Ready, Set, Art!'
-  //});
+  res.render('index', {
+    title: 'Ready, Set, Art!'
+  });
 });
 
 app.listen(PORT);
