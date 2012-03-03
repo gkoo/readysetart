@@ -11,7 +11,7 @@ var app         = require('./routes.js'),
 socketio.set('transports', ['xhr-polling']);
 
 // prevent socket.io's log messages from cluttering the console output
-socketio.set('log level', 0);
+// socketio.set('log level', 0);
 
 pictionary.listen(socketio)
           .setChat(chat);
