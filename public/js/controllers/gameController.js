@@ -5,7 +5,7 @@ var debug = 0,
 GameController = function() {
   var controller = {
     initialize: function() {
-      var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com/';
+      var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com';
       _.extend(this, Backbone.Events);
       _.bindAll(this,
                 'setupViews',
