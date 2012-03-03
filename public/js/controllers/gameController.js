@@ -1,5 +1,4 @@
-var debug = 0,
-    gameSocket,
+var gameSocket,
     chatSocket,
 
 GameController = function() {
@@ -119,6 +118,10 @@ GameController = function() {
         _this.trigger('completedPath', o);
       });
 
+      _this.gameSocket.on('toggleFreeDraw', function(o) {
+        _this.trigger('toggleFreeDraw', o);
+      });
+
       _this.gameSocket.on('wordToDraw', function(word) {
         _this.trigger('wordToDraw', word);
       });
@@ -171,6 +174,7 @@ GameController = function() {
       this.boardView.bind('boardView:debug', this.debug);
       this.bind('newPoints', this.boardView.handleNewPoints);
       this.bind('completedPath', this.boardView.handleCompletedPath);
+      this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
@@ -191,6 +195,7 @@ GameController = function() {
       this.gameControls.bind('gameControls:gameStatus', this.emitGameSocketEvent);
       this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
       this.gameControls.bind('gameControls:freeDraw', this.boardView.handleFreeDraw);
+      this.gameControls.bind('gameControls:freeDraw', this.emitGameSocketEvent);
     },
 
     handleGameModel: function(data) {

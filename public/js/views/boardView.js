@@ -29,7 +29,7 @@ var BoardView = Backbone.View.extend({
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
     this.wordToDrawEl = this.$('.wordToDraw');
-    this.on('boardView:drawEnabled', this.handleDrawEnable);
+    this.bind('boardView:drawEnabled', this.handleDrawEnable);
   },
 
   drawSleep: false,
@@ -158,9 +158,24 @@ var BoardView = Backbone.View.extend({
     this.enable();
   },
 
-  handleFreeDraw: function(flag) {
-    this.enabled = flag;
-    this.trigger('boardView:drawEnabled', flag);
+  handleFreeDraw: function(o) {
+    var freeDraw, found = false;
+    if (typeof o === 'object') {
+      if (o.data) {
+        freeDraw = o.data.freeDraw;
+        found = true;
+      }
+      else if (o.freeDraw) {
+        freeDraw = o.freeDraw;
+        found = true;
+      }
+    }
+    if (!found) {
+      console.log('[ERR] unable to determine type of freeDraw!');
+      return;
+    }
+    this.enabled = freeDraw;
+    this.trigger('boardView:drawEnabled', freeDraw);
   },
 
   handleDrawEnable: function(on) {

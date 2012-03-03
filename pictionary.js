@@ -198,6 +198,13 @@ Pictionary = function () {
                                              'points': data });
       });
 
+      socket.on('toggleFreeDraw', function (data) {
+        // only leader is allowed to toggle free draw.
+        if (socket.id === players.getLeader().get('id')) {
+          socket.broadcast.emit('toggleFreeDraw', data);
+        }
+      });
+
       // Client has completed drawing a path.
       socket.on('completedPath', function (o) {
         socket.broadcast.emit('completedPath', { 'senderId': socket.id,

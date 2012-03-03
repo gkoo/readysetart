@@ -27,14 +27,14 @@ var GameControlsView = Backbone.View.extend({
   },
 
   toggleFreeDraw: function() {
+    var o = { 'eventName': 'toggleFreeDraw' };
     if (this.$('#freedraw').attr('checked')) {
-      console.log('freedraw true');
-      this.trigger('gameControls:freeDraw', true);
+      o.data = { 'freeDraw': true };
     }
     else {
-      console.log('freedraw false');
-      this.trigger('gameControls:freeDraw', false);
+      o.data = { 'freeDraw': false };
     }
+    this.trigger('gameControls:freeDraw', o);
   },
 
   updateControls: function(o) {
