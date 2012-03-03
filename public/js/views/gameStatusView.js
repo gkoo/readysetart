@@ -1,3 +1,4 @@
+// TODO: show game status messages in chat
 var GameStatusView = Backbone.View.extend({
   initialize: function(o) {
     try {
@@ -40,6 +41,9 @@ var GameStatusView = Backbone.View.extend({
   renderStatus: function(model, status) {
     if (status === GameStatusEnum.IN_PROGRESS) {
       this.statusEl.text('Game has started.');
+    }
+    else if (status === GameStatusEnum.FINISHED) {
+      this.statusEl.text('Game has ended.');
     }
   },
 

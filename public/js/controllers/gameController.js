@@ -1,4 +1,4 @@
-var debug = 1,
+var debug = 0,
     gameSocket,
     chatSocket,
 
@@ -14,7 +14,7 @@ GameController = function() {
                 'handleGameModel',
                 'getCurrPlayer',
                 'getPlayerById',
-                'emitGameEvent',
+                'emitGameSocketEvent',
                 'setupSocketEvents',
                 'notifyCorrectGuess',
                 'handleTurnOver');
@@ -42,12 +42,12 @@ GameController = function() {
                                             getPlayerById: this.getPlayerById });
         */
 
-        this.gameControls         = new GameControlsView({ el: $('.controls') });
+        this.gameControls         = new GameControlsView({ el: $('#controls') });
         this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
                                                                getPlayerById: this.getPlayerById,
                                                                getCurrPlayer:  this.getCurrPlayer });
         this.gameIntro            = new GameIntroView({ el: $('#intro') });
-        this.boardView            = new BoardView({ el: $('.board') });
+        this.boardView            = new BoardView({ el: $('#board') });
       } catch (e) {
         console.log(e);
       }
@@ -92,7 +92,7 @@ GameController = function() {
       });
 
       _this.gameSocket.on('gameStatus', function (o) {
-        _this.trigger('gameStatus', o);
+        _this.trigger('server:gameStatus', o);
       });
 
       _this.gameSocket.on('playerUpdate', function(player) {
@@ -124,7 +124,7 @@ GameController = function() {
       });
 
       _this.gameSocket.on('notifyCorrectGuess', function(o) {
-        _this.trigger('notifyCorrectGuess', o);
+        _this.trigger('server:notifyCorrectGuess', o);
       });
     },
 
@@ -160,8 +160,8 @@ GameController = function() {
       //this.bind('newPlayer', this.teamsColl.addPlayer);
 
       // Board Events
-      this.boardView.bind('newStrokePub', this.emitGameEvent);
-      this.boardView.bind('clearBoard', this.emitGameEvent);
+      this.boardView.bind('newStrokePub', this.emitGameSocketEvent);
+      this.boardView.bind('clearBoard', this.emitGameSocketEvent);
       this.boardView.bind('debug', this.debug);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
@@ -175,13 +175,14 @@ GameController = function() {
       this.gameStatusController.bind('artistChange', this.boardView.reset);
 
       // Controller Events
-      this.bind('gameStatus', this.gameStatusController.setGameStatus);
-      this.bind('gameStatus', this.gameControls.updateControls);
-      this.bind('notifyCorrectGuess', this.notifyCorrectGuess);
+      this.bind('server:gameStatus', this.gameStatusController.setGameStatus);
+      this.bind('server:gameStatus', this.gameControls.updateControls);
+      this.bind('server:notifyCorrectGuess', this.notifyCorrectGuess);
 
       // Game Controls Events
-      this.gameControls.bind('gameStatus', this.emitGameEvent);
-      this.gameControls.bind('gameStatus', this.gameStatusController.setGameStatus);
+      this.gameControls.bind('gameControls:gameStatus', this.emitGameSocketEvent);
+      this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
+      this.gameControls.bind('gameControls:freeDraw', this.boardView.handleFreeDraw);
     },
 
     handleGameModel: function(data) {
@@ -225,14 +226,14 @@ GameController = function() {
       }
     },
 
-    /* emitGameEvent
+    /* emitGameSocketEvent
      * ==================
      * Generic handler for emitting a game event to Socket.IO.
      * Expects an object with two properties: eventName, the name
      * of the Socket.IO event to which to broadcast, and data,
      * the data to attach to the event.
      */
-    emitGameEvent: function (o) {
+    emitGameSocketEvent: function (o) {
       if (o.eventName) {
         if (o.data) {
           this.gameSocket.emit(o.eventName, o.data);

@@ -3,6 +3,7 @@ var GameControlsView = Backbone.View.extend({
     _.extend(this, Backbone.Events);
     _.bindAll(this, 'doEndTurn',
                     'doStartGame',
+                    'toggleFreeDraw',
                     'updateControls');
     this.startBtn = $('.startGameBtn').removeAttr('disabled');
     this.endBtn = $('.endTurnBtn').attr('disabled', 'disabled');
@@ -10,7 +11,8 @@ var GameControlsView = Backbone.View.extend({
 
   events: {
     'click .endTurnBtn': 'doEndTurn',
-    'click .startGameBtn': 'doStartGame'
+    'click .startGameBtn': 'doStartGame',
+    'change #freedraw': 'toggleFreeDraw'
   },
 
   doEndTurn: function() {
@@ -18,16 +20,31 @@ var GameControlsView = Backbone.View.extend({
   },
 
   doStartGame: function() {
-    var data = { 'gameStatus': GameStatusEnum.IN_PROGRESS };
-    this.trigger('gameStatus', { 'eventName': 'gameStatus',
+    var data = { 'gameControls:gameStatus': GameStatusEnum.IN_PROGRESS };
+    this.trigger('gameControls:gameStatus', { 'eventName': 'gameStatus',
                                  'data': data });
     this.updateControls(GameStatusEnum.IN_PROGRESS);
+  },
+
+  toggleFreeDraw: function() {
+    if (this.$('#freedraw').attr('checked')) {
+      console.log('freedraw true');
+      this.trigger('gameControls:freeDraw', true);
+    }
+    else {
+      console.log('freedraw false');
+      this.trigger('gameControls:freeDraw', false);
+    }
   },
 
   updateControls: function(o) {
     if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
       this.startBtn.attr('disabled', 'disabled');
       this.endBtn.removeAttr('disabled');
+    }
+    else if (o.gameStatus === GameStatusEnum.FINISHED) {
+      this.startBtn.removeAttr('disabled');
+      this.endBtn.attr('disabled', 'disabled');
     }
   },
 

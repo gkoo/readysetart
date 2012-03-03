@@ -23,12 +23,7 @@ var GameStatusController = function(o) {
     },
 
     setGameStatus: function(o) {
-      try {
-        this.model.set(o);
-      }
-      catch(e) {
-        console.log(e);
-      }
+      this.model.set(o);
     },
 
     doTimerTick: function() {
@@ -37,7 +32,12 @@ var GameStatusController = function(o) {
       if (timeLeft < 0 && this.timerInterval) {
         clearInterval(this.timerInterval);
         this.timerInterval = null;
-        this.trigger('turnOver');
+        // only leader triggers turn over.
+        // TODO: change this so that turnOver event is generated
+        // on the server side
+        if (this.getCurrPlayer().get('isLeader')) {
+          this.trigger('turnOver');
+        }
       }
       else {
         this.model.set({ 'timeLeft' : timeLeft });
@@ -72,8 +72,8 @@ var GameStatusController = function(o) {
     },
 
     handleGameStatus: function(model, status) {
-      if (this.model.get('gameStatus') === GameStatusEnum.IN_PROGRESS
-          && this.model.previous('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
+      if (model.get('gameStatus') === GameStatusEnum.IN_PROGRESS
+          && model.previous('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
         this.startGame();
       }
     },

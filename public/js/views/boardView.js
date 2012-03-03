@@ -19,6 +19,7 @@ var BoardView = Backbone.View.extend({
                 'enable',
                 'disable',
                 'resetAndEnable',
+                'handleFreeDraw',
                 'debug');
 
       this.setupPaperCanvas();
@@ -29,6 +30,8 @@ var BoardView = Backbone.View.extend({
       console.log(e);
     }
   },
+
+  pathPoints: [],
 
   events: {
     'click .clearBtn': 'clearBoard',
@@ -51,15 +54,17 @@ var BoardView = Backbone.View.extend({
       if (!this.path) {
         this.path = new Path();
       }
-      this.path = new Path();
+      this.path = new Path(); // create a new path
       this.path.strokeColor = '#000';
       this.path.add(evt.point);
+      this.pathPoints.push(evt.point);
     }
   },
 
   mouseDrag: function(evt) {
     if (this.enabled && this.path) {
       this.path.add(evt.point);
+      this.pathPoints.push(evt.point);
     }
   },
 
@@ -124,6 +129,10 @@ var BoardView = Backbone.View.extend({
   resetAndEnable: function() {
     this.reset();
     this.enable();
+  },
+
+  handleFreeDraw: function(flag) {
+    this.enabled = flag;
   },
 
   debug: function() {

@@ -37,7 +37,6 @@ ChatController = function () {
   this.listen = function (socketio) {
     io = socketio.of('/chat'); // SocketNamespace
     io.on('connection', function(socket) {
-      console.log('\n\n\nchat connected');
       socket.on('newMessages', function(newMessages) {
         if (!newMessages || !newMessages.length) {
           console.log('[err] empty newMessages in chat');
@@ -47,7 +46,6 @@ ChatController = function () {
           _this.trigger('newMessages', { 'messages': newMessages,
                                          'callback': _this.handleCorrectGuess,
                                          'socket':   socket });
-          console.log('emitting incoming');
           socket.broadcast.emit('incomingMessages', newMessages);
         }
       });

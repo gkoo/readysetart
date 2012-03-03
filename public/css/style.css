@@ -48,12 +48,12 @@ a {
   margin: 5px 0;
 }
 
-.board {
+#board {
   float: left;
   width: 800px;
 }
 
-.board .clearBtn {
+#board .clearBtn {
   float: left;
 }
 
@@ -98,4 +98,7 @@ a {
 
 .chat li {
   list-style: none;
+}
+
+#debug {
 }

@@ -8,9 +8,7 @@ var app         = require('./routes.js'),
     pictionary  = require('./pictionary.js'),
     chat        = require('./chat.js');
 
-socketio.set('transports', ['htmlfile',
-                            'xhr-polling',
-                            'jsonp-polling']);
+socketio.set('transports', ['xhr-polling']);
 
 // prevent socket.io's log messages from cluttering the console output
 socketio.set('log level', 0);

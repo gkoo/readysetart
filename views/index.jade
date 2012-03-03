@@ -1,8 +1,9 @@
 #intro
   != partial('intro')
+!= partial('controls')
 #main
   h1= title
-  .board
+  #board
     canvas#gameBoard(width=800, height=600)
     .boardControls
       input.clearBtn(type="button", value="Clear Board")
@@ -18,8 +19,5 @@
     .playerInfo
       h1 Players
       ul.playerList
-    p.controls
-      input(type="button", value="End Turn", disabled="disabled", class="endTurnBtn")
-      input(type="button", value="Start Game", class="startGameBtn")
     != partial('chat')
 != partial('scripts')

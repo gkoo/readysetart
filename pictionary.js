@@ -1,6 +1,6 @@
 var game     = require('./game'),
     wordBase = require('./wordbase/wordbase.js'),
-    TURN_DURATION = 30000,
+    TURN_DURATION = 5000,
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
 
@@ -49,9 +49,6 @@ Pictionary = function () {
   this.handleGameStart = function (o) {
     var players = this.model.get('players'),
         gameStatusModel = this.model.get('gameStatus'),
-        leader  = players.getLeader(),
-        status  = o.gameStatus,
-        date    = new Date(),
         turnEnd = (new Date()).getTime() + this.turn_duration,
         currArtistId,
         newStatus;
@@ -60,7 +57,7 @@ Pictionary = function () {
     players.decideArtistOrder();
     currArtistId = players.getCurrentArtist();
 
-    newStatus = { 'gameStatus': status, // set new status for all players
+    newStatus = { 'gameStatus': o.gameStatus, // set new status for all players
                   'currArtist': currArtistId,
                   'turnEnd': turnEnd };
 
@@ -69,13 +66,38 @@ Pictionary = function () {
     this.sendNextWord();
   };
 
+  this.handleGameFinish = (function (o) {
+    var gameStatusModel = this.model.get('gameStatus'),
+        newStatus = { 'gameStatus': GameStatusEnum.FINISHED };
+    gameStatusModel.set(newStatus);
+    this.io.emit('gameStatus', newStatus);
+  }).bind(this);
+
+  this.handleTurnOver = (function () {
+    var players   = this.model.get('players'),
+        gameStatusModel = this.model.get('gameStatus'),
+        nextArtist, newStatus, nextWord;
+
+    if (players.hasNextArtist()) {
+      nextArtist = players.getNextArtist();
+      newStatus = { 'currArtist': nextArtist };
+      this.io.emit('gameStatus', newStatus);
+      gameStatusModel.set(newStatus);
+      this.sendNextWord();
+    }
+    else {
+      // TODO: no more artists, signal end of round
+      this.handleGameFinish();
+    }
+  }).bind(this);
+
   this.handleGameStatus = (function (o) {
     if (typeof o.gameStatus !== 'undefined') {
       if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
         this.handleGameStart(o);
       }
       else if (o.gameStatus === GameStatusEnum.FINISHED) {
-        //this.handleGameFinish(o);
+        this.handleGameFinish(o);
       }
     }
   }).bind(this);
@@ -143,20 +165,8 @@ Pictionary = function () {
         console.log(this.model.get('players').toJSON());
       }).bind(this));
 
-      socket.on('turnOver', (function () {
-        var nextArtist, newStatus, nextWord;
-        if (players.hasNextArtist()) {
-          nextArtist = players.getNextArtist();
-          newStatus = { 'currArtist': nextArtist };
-          socket.broadcast.emit('gameStatus', newStatus);
-          socket.emit('gameStatus', newStatus);
-          gameStatusModel.set(newStatus);
-          this.sendNextWord();
-        }
-        else {
-          // TODO: no more artists, signal end of round
-        }
-      }).bind(this));
+      // TODO: need to keep a timer on the server side
+      socket.on('turnOver', this.handleTurnOver);
 
       socket.on('disconnect', function (data) {
         var i, len, player, id = socket.id;
