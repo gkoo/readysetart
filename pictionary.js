@@ -104,6 +104,7 @@ Pictionary = function () {
 
   // Listen to Socket.io
   this.listen = function(io) {
+    console.log('\n\n\nLISTENING\n');
     this.io = io.of('/game');
 
     this.io.on('connection', (function (socket) {
