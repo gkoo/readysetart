@@ -18,7 +18,6 @@ app.configure('development', function(){
 });
 
 app.configure('production', function(){
-  //app.use(express.errorHandler());
   app.use(express.errorHandler({ showStack: true }));
 });
 
