@@ -31,6 +31,7 @@ GameController = function() {
 
       // I decided I want to implement free-for-all first, since it will be
       // easier. If I have time, I'll come back to teams in the future.
+      var freeDraw = this.gameStatus.get('freeDraw');
       this.playersView = new PlayersView({ el: $('.playerInfo'),
                                            collection: this.playersColl,
                                            getCurrPlayer: this.getCurrPlayer });
@@ -41,12 +42,14 @@ GameController = function() {
                                           getPlayerById: this.getPlayerById });
       */
 
-      this.gameControls         = new GameControlsView({ el: $('#controls') });
+      this.gameControls         = new GameControlsView({ el: $('#controls'),
+                                                         freeDraw: freeDraw });
       this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
                                                              getPlayerById: this.getPlayerById,
                                                              getCurrPlayer:  this.getCurrPlayer });
       this.gameIntro            = new GameIntroView({ el: $('#intro') });
-      this.boardView            = new BoardView({ el: $('#board') });
+      this.boardView            = new BoardView({ el: $('#board'),
+                                                  freeDraw: freeDraw });
       _.extend(this.boardView, this.playerHelperFns);
     },
 
@@ -167,11 +170,8 @@ GameController = function() {
       //this.bind('newPlayer', this.teamsColl.addPlayer);
 
       // Board Events
-      this.boardView.bind('boardView:newStrokePub', this.emitGameSocketEvent);
-      this.boardView.bind('boardView:clearBoard', this.emitGameSocketEvent);
       this.boardView.bind('boardView:sendPoints', this.emitGameSocketEvent);
       this.boardView.bind('boardView:completedPath', this.emitGameSocketEvent);
-      this.boardView.bind('boardView:debug', this.debug);
       this.bind('newPoints', this.boardView.handleNewPoints);
       this.bind('completedPath', this.boardView.handleCompletedPath);
       this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
@@ -192,6 +192,9 @@ GameController = function() {
       this.bind('server:notifyCorrectGuess', this.notifyCorrectGuess);
 
       // Game Controls Events
+      this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
+      this.gameControls.bind('gameControls:clearBoard', this.boardView.doClear);
+      this.gameControls.bind('gameControls:debug', this.debug);
       this.gameControls.bind('gameControls:gameStatus', this.emitGameSocketEvent);
       this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
       this.gameControls.bind('gameControls:freeDraw', this.boardView.handleFreeDraw);
@@ -200,18 +203,17 @@ GameController = function() {
 
     handleGameModel: function(data) {
       var players, teams;
-      if (!data || !data.type || !data.model) {
+      if (!data || !data.model) {
         console.log('[err] couldn\'t detect data');
         return;
       }
-      if (data.type === 'game') {
-        this.userId = data.userId;
-        this.setupGameState(data.model);
+      this.userId = data.userId;
+      this.setupGameState(data.model);
+      this.boardView.handleInitPaths(data.initPaths);
 
-        // set leader
-        if (this.getCurrPlayer().get('isLeader')) {
-          this.gameControls.showControls();
-        }
+      // set leader
+      if (this.getCurrPlayer().get('isLeader')) {
+        this.gameControls.showControls();
       }
     },
 

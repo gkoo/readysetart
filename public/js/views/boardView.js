@@ -1,7 +1,7 @@
 // TODO: clear the board when someone makes a correct guess
 
 var BoardView = Backbone.View.extend({
-  initialize: function() {
+  initialize: function(o) {
     paper.install(window); // Injects the paper scope into the window scope. Maybe should revisit this.
     paper.setup(document.getElementById('gameBoard'));
 
@@ -9,7 +9,6 @@ var BoardView = Backbone.View.extend({
     _.bindAll(this,
               'doClear',
               'doDrawSleep',
-              'clearBoard',
               'mouseDown',
               'mouseDrag',
               'mouseUp',
@@ -24,13 +23,16 @@ var BoardView = Backbone.View.extend({
               'sendNewPoints',
               'handleNewPoints',
               'handleCompletedPath',
-              'debug');
+              'handleInitPaths');
 
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
     this.wordToDrawEl = this.$('.wordToDraw');
     this.bind('boardView:drawEnabled', this.handleDrawEnable);
+    this.handleFreeDraw(o); // check if we are in freeDraw mode
   },
+
+  simplifyLevel: 10,
 
   drawSleep: false,
 
@@ -54,19 +56,12 @@ var BoardView = Backbone.View.extend({
   },
 
   events: {
-    'click .clearBtn': 'clearBoard',
-    'click .debug': 'debug'
   },
 
   doClear: function() {
     this.path = new Path.Rectangle(new Point(0, 0), view.viewSize);
     this.path.fillColor = '#fff';
     view.draw();
-  },
-
-  clearBoard: function() {
-    this.doClear();
-    this.trigger('boardView:clearBoard', { 'eventName': 'clearBoard' });
   },
 
   doDrawSleep: function () {
@@ -104,7 +99,7 @@ var BoardView = Backbone.View.extend({
     this.currUserPathPoints = [];
 
     if (this.enabled && this.path) {
-      this.path.simplify(10);
+      this.path.simplify(this.simplifyLevel);
       this.trigger('boardView:completedPath', { 'eventName': 'completedPath',
                                                 'data': lastPoints });
     }
@@ -171,7 +166,6 @@ var BoardView = Backbone.View.extend({
       }
     }
     if (!found) {
-      console.log('[ERR] unable to determine type of freeDraw!');
       return;
     }
     this.enabled = freeDraw;
@@ -200,11 +194,13 @@ var BoardView = Backbone.View.extend({
     }
 
     // Draw the last remaining points
-    this.handleNewPoints(data, false);
+    if (data.points) {
+      this.handleNewPoints(data, false);
+    }
 
     senderId = data.senderId;
     if (senderId) {
-      this.paths[senderId].simplify(10);
+      this.paths[senderId].simplify(this.simplifyLevel);
       this.paths[senderId] = null;
     }
     view.draw();
@@ -229,6 +225,16 @@ var BoardView = Backbone.View.extend({
     if (draw) { view.draw(); }
   },
 
+  handleInitPaths: function (paths) {
+    var i, len, path;
+    for (i = 0, len = paths.length; i<len; ++i) {
+      path = this.createNewPath();
+      path.addSegments(paths[i]);
+      path.simplify(this.simplifyLevel);
+    }
+    view.draw();
+  },
+
   sendNewPoints: function () {
     var points = this.currUserPathPoints;
     if (points.length) {
@@ -237,9 +243,6 @@ var BoardView = Backbone.View.extend({
       this.trigger('boardView:sendPoints', { 'eventName': 'newPoints',
                                              'data': points });
     }
-  },
-
-  debug: function() {
-    this.trigger('boardView:debug');
   }
+
 });

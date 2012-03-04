@@ -1,12 +1,24 @@
 var game     = require('./game'),
     wordBase = require('./wordbase/wordbase.js'),
-    TURN_DURATION = 5000,
+    TURN_DURATION = 30000,
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
 
 Pictionary = function () {
   this.wordBase = wordBase;
   this.turn_duration = TURN_DURATION;
+
+  // For each incoming path, store in userPaths keyed by socket.id
+  // Once mouseup event comes in, move path from userPaths to allPaths
+  // (only one path in userPaths[socketid] at a time)
+  // On clearBoard event, remove userPaths and allPaths
+
+  // Holds arrays of PaperJS Points, keyed by socket.id
+  this.userPaths = {};
+
+  // Array of arrays of PaperJS Points
+  // (Array of Paths)
+  this.allPaths = [];
 
   // Override
   // TODO: Need to distinguish between system messages and
@@ -122,8 +134,8 @@ Pictionary = function () {
 
       players.add(initInfo);
 
-      socket.emit('initGameModel', { 'type': 'game',
-                                     'model': this.model,
+      socket.emit('initGameModel', { 'model': this.model,
+                                     'initPaths': this.allPaths,
                                      'userId': socket.id });
 
       this.chatController.broadcastNewPlayer(initInfo);
@@ -184,36 +196,44 @@ Pictionary = function () {
         this.sync(data, socket);
       }).bind(this));
 
-      socket.on('debug', function () {
-      });
-
-      //socket.on('newStrokePub', function(segment) {
-        //console.log('\n\n\nNewStrokePub');
-        //console.log(segment);
-        //socket.broadcast.emit('newStrokeSub', segment);
-      //});
-
-      socket.on('newPoints', function (data) {
+      socket.on('newPoints', (function (data) {
+        var path;
         socket.broadcast.emit('newPoints', { 'senderId': socket.id,
                                              'points': data });
-      });
 
-      socket.on('toggleFreeDraw', function (data) {
+        if (!this.userPaths[socket.id]) {
+          this.userPaths[socket.id] = [];
+        }
+
+        path = this.userPaths[socket.id];
+        this.userPaths[socket.id] = path.concat(data);
+      }).bind(this));
+
+      // Client has completed drawing a path.
+      socket.on('completedPath', (function (o) {
+        var path;
+        socket.broadcast.emit('completedPath', { 'senderId': socket.id,
+                                                 'points': o });
+        path = this.userPaths[socket.id];
+        this.userPaths[socket.id] = null;
+        this.allPaths.push(path.concat(o));
+      }).bind(this));
+
+      socket.on('toggleFreeDraw', (function (data) {
+        var gameStatusModel;
         // only leader is allowed to toggle free draw.
         if (socket.id === players.getLeader().get('id')) {
           socket.broadcast.emit('toggleFreeDraw', data);
         }
-      });
+        gameStatusModel = this.model.get('gameStatus');
+        gameStatusModel.set(data);
+      }).bind(this));
 
-      // Client has completed drawing a path.
-      socket.on('completedPath', function (o) {
-        socket.broadcast.emit('completedPath', { 'senderId': socket.id,
-                                                 'points': o });
-      });
-
-      socket.on('clearBoard', function() {
+      socket.on('clearBoard', (function() {
         socket.broadcast.emit('clearBoard');
-      });
+        this.userPaths = {};
+        this.allPaths = [];
+      }).bind(this));
     }).bind(this));
 
     return this;

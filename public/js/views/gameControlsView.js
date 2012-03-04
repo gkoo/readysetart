@@ -1,18 +1,37 @@
 var GameControlsView = Backbone.View.extend({
-  initialize: function() {
+  initialize: function(o) {
     _.extend(this, Backbone.Events);
     _.bindAll(this, 'doEndTurn',
                     'doStartGame',
                     'toggleFreeDraw',
+                    'enableFreeDrawBtn',
+                    'disableFreeDrawBtn',
                     'updateControls');
-    this.startBtn = $('.startGameBtn').removeAttr('disabled');
-    this.endBtn = $('.endTurnBtn').attr('disabled', 'disabled');
+    this.startBtn = this.$('.startGameBtn').removeAttr('disabled');
+    this.endBtn = this.$('.endTurnBtn').attr('disabled', 'disabled');
+    this.freeDrawBtn = this.$('#freedraw').removeAttr('disabled'); // TODO: why does Firefox persist this attr?
+    if (o.freeDraw) {
+      this.freeDrawBtn.attr('checked', 'checked');
+    }
+    else {
+      this.freeDrawBtn.removeAttr('checked');
+    }
   },
 
   events: {
+    'click .clearBtn': 'clearBoard',
+    'click .debug': 'debug',
     'click .endTurnBtn': 'doEndTurn',
     'click .startGameBtn': 'doStartGame',
     'change #freedraw': 'toggleFreeDraw'
+  },
+
+  clearBoard: function () {
+    this.trigger('gameControls:clearBoard', { 'eventName': 'clearBoard' });
+  },
+
+  debug: function() {
+    this.trigger('gameControls:debug');
   },
 
   doEndTurn: function() {
@@ -20,10 +39,12 @@ var GameControlsView = Backbone.View.extend({
   },
 
   doStartGame: function() {
-    var data = { 'gameControls:gameStatus': GameStatusEnum.IN_PROGRESS };
+    var data = { 'gameStatus': GameStatusEnum.IN_PROGRESS };
     this.trigger('gameControls:gameStatus', { 'eventName': 'gameStatus',
-                                 'data': data });
+                                              'data': data });
     this.updateControls(GameStatusEnum.IN_PROGRESS);
+    this.disableFreeDrawBtn();
+    this.toggleFreeDraw();
   },
 
   toggleFreeDraw: function() {
@@ -37,6 +58,15 @@ var GameControlsView = Backbone.View.extend({
     this.trigger('gameControls:freeDraw', o);
   },
 
+  enableFreeDrawBtn: function () {
+    this.freeDrawBtn.removeAttr('disabled');
+  },
+
+  disableFreeDrawBtn: function () {
+    this.freeDrawBtn.removeAttr('checked');
+    this.freeDrawBtn.attr('disabled', 'disabled');
+  },
+
   updateControls: function(o) {
     if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
       this.startBtn.attr('disabled', 'disabled');
@@ -45,6 +75,7 @@ var GameControlsView = Backbone.View.extend({
     else if (o.gameStatus === GameStatusEnum.FINISHED) {
       this.startBtn.removeAttr('disabled');
       this.endBtn.attr('disabled', 'disabled');
+      this.freeDrawBtn.removeAttr('disabled');
     }
   },
 
