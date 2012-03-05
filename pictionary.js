@@ -14,6 +14,7 @@ Pictionary = function () {
   // On clearBoard event, remove userPaths and allPaths
 
   // Holds arrays of PaperJS Points, keyed by socket.id
+  // Used primarily for freeDraw
   this.userPaths = {};
 
   // Array of arrays of PaperJS Points
@@ -76,6 +77,10 @@ Pictionary = function () {
     gameStatusModel.set(newStatus);
     this.io.emit('gameStatus', newStatus);
     this.sendNextWord();
+
+    // Clear cached paths
+    this.userPaths = {};
+    this.allPaths = [];
   };
 
   this.handleGameFinish = (function (o) {
@@ -179,16 +184,25 @@ Pictionary = function () {
       // TODO: need to keep a timer on the server side
       socket.on('turnOver', this.handleTurnOver);
 
-      socket.on('disconnect', function (data) {
-        var i, len, player, id = socket.id;
+      socket.on('disconnect', function () {
+        var player, wasLeader, newLeader, id = socket.id;
+
+        player = players.get(id);
+        wasLeader = player.get('isLeader');
 
         // Remove player from players array
-        players.remove(players.get(id));
+        players.remove(player);
+
+        if (wasLeader && players.length) {
+          newLeader = players.at(0);
+          newLeader.set({ 'isLeader': true });
+        }
 
         // Remove player from any teams (s)he is on.
         // _this.model.get('teams').removePlayer(id);
 
-        socket.broadcast.emit('playerDisconnect', id);
+        socket.broadcast.emit('playerDisconnect', { 'id': id,
+                                                    'newLeaderId': newLeader ? newLeader.id : 0 });
         console.log(socket.id + ' disconnected');
       });
 
@@ -215,8 +229,8 @@ Pictionary = function () {
         socket.broadcast.emit('completedPath', { 'senderId': socket.id,
                                                  'points': o });
         path = this.userPaths[socket.id];
-        this.userPaths[socket.id] = null;
         this.allPaths.push(path.concat(o));
+        this.userPaths[socket.id] = null;
       }).bind(this));
 
       socket.on('toggleFreeDraw', (function (data) {

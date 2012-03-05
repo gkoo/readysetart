@@ -56,6 +56,7 @@ GameController = function() {
     setupGameState: function(gameData) {
       this.gameStatus  = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
+      this.playersColl.userId = this.userId;
       this.currPlayer  = this.playersColl.get(this.userId);
       this.playerHelperFns = { 'currPlayer':    this.currPlayer,
                                'getPlayerById': this.getPlayerById };
@@ -76,7 +77,6 @@ GameController = function() {
 
       _this.gameSocket.on('disconnect', function() {
         console.log('disconnect');
-        //var name = prompt('What is your name?');
       });
 
       _this.gameSocket.on('initGameModel', this.handleGameModel);
@@ -101,8 +101,8 @@ GameController = function() {
         _this.trigger('newPlayer', o);
       });
 
-      _this.gameSocket.on('playerDisconnect', function(id) {
-        _this.trigger('playerDisconnect', id);
+      _this.gameSocket.on('playerDisconnect', function(data) {
+        _this.trigger('playerDisconnect', data);
       });
 
       _this.gameSocket.on('playerName', function(o) {
@@ -165,6 +165,8 @@ GameController = function() {
       // player that left
       this.playersColl.bind('player:removedPlayer', this.chatController.handlePlayerDisconnect);
       this.playersColl.bind('player:changeName', this.chatController.handleNameChange);
+      this.playersColl.bind('player:newLeader', this.chatController.handleNewLeader);
+      this.playersColl.bind('player:promotedToLeader', this.gameControls.showControls);
 
       // TeamCollection Events
       //this.bind('newPlayer', this.teamsColl.addPlayer);

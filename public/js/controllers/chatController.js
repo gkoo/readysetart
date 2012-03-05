@@ -8,6 +8,7 @@ var ChatController = function(chatSocket) {
       _.bindAll(this, 'setupSocketEvents',
                       'addUserMessageToModel',
                       'handleNameChange',
+                      'handleNewLeader',
                       'handlePlayerDisconnect');
       this.collection = new MessageCollection({ bufferLength: this.BUFFER_LENGTH });
 
@@ -61,6 +62,11 @@ var ChatController = function(chatSocket) {
         // just one model
         this.view.renderNewMessage(model.get('name') + ' has left the room.');
       }
+    },
+
+    handleNewLeader: function (playerModel) {
+      var name = playerModel.get('name')
+      this.collection.addSysMessage(name + ' has been promoted to leader.');
     },
 
     handleNameChange: function(o) {

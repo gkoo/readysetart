@@ -24,8 +24,8 @@ var _u       = require('underscore'),
 
 GameModel = Backbone.Model.extend({
   initialize: function (opt) {
-    this.set({ 'players':      new playerLib.PlayersCollection(),
-               'gameStatus':   new gameStatusLib.GameStatusModel({ 'turnDuration': opt.turn_duration }),
+    this.set({ 'players':    new playerLib.PlayersCollection(),
+               'gameStatus': new gameStatusLib.GameStatusModel({ 'turnDuration': opt.turn_duration }),
              });
   }
 }),

@@ -40,6 +40,7 @@ PlayersCollection = Backbone.Collection.extend({
                'getLeader',
                'setPlayerName',
                'handleNewPlayer',
+               'promoteLeader',
                'playerUpdate',
                'playerDisconnect');
 
@@ -89,14 +90,32 @@ PlayersCollection = Backbone.Collection.extend({
     }
   },
 
-  playerDisconnect: function(id) {
-    var playerToRemove = this.get(id);
+  promoteLeader: function (newLeaderId) {
+    // TODO: hide controls from old leader
+    var newLeader = this.get(newLeaderId);
+    if (newLeader) {
+      newLeader.set({ 'isLeader': true });
+      this.trigger('player:newLeader', newLeader);
+      if (newLeader.id === this.userId) {
+        this.trigger('player:promotedToLeader');
+      }
+    }
+    else {
+      console.log('[err] couldn\'t find new leader');
+    }
+  },
+
+  playerDisconnect: function(data) {
+    var playerToRemove = this.get(data.id);
+
     if (playerToRemove) {
       this.remove(playerToRemove);
     }
     else {
       console.log('[err] couldn\'t find player to remove');
     }
+
+    this.promoteLeader(data.newLeaderId);
   }
 });
 

@@ -47,7 +47,7 @@ PlayersView = Backbone.View.extend({
   },
 
   createNewPlayerView: function(model) {
-    return new PlayerView({ model:         model,
+    return new PlayerView({ model: model,
                             getCurrPlayer: this.getCurrPlayer });
   },
 
@@ -56,26 +56,15 @@ PlayersView = Backbone.View.extend({
         playerList = this.$('.playerList'),
         _this = this;
 
-    try {
-      this.playerViews = [];
-      this.collection.each(function(playerModel) {
-        console.log('in each');
-        console.log(_this.getCurrPlayer);
-        var newPlayerView = this.createNewPlayerView(playerModel);
-        newContainer.append(newPlayerView.render());
-      });
-      /*
-      _.each(this.playerViews, function(playerView) {
-        newContainer.append(playerView.render());
-      });
-      */
+    this.playerViews = [];
+    this.collection.each(function(playerModel) {
+      var newPlayerView = _this.createNewPlayerView(playerModel);
+      newContainer.append(newPlayerView.render());
+      _this.playerViews.push(newPlayerView);
+    });
 
-      playerList.replaceWith(newContainer);
-      return this.el;
-    }
-    catch(e) {
-      console.log(e);
-    }
+    playerList.replaceWith(newContainer);
+    return this.el;
   },
 
   renderNewPlayer: function(playerModel) {
@@ -84,8 +73,7 @@ PlayersView = Backbone.View.extend({
     this.$('.playerList').append(newPlayerView.render());
   },
 
-  // add a listing for a new player who has just
-  // connected
+  // add a listing for a new player who has just connected
   handleNewPlayer: function(id, name) {
     renderNewPlayer(new PlayerModel({ id:   id,
                                       name: name ? name : 'Player ' + id }));
@@ -105,7 +93,7 @@ PlayersView = Backbone.View.extend({
 
   removePlayer: function(o) {
     var playerViewToRemove = _.find(this.playerViews, function(view) {
-      return view.model.id === o.id;
+      return view.$el.attr('id') === 'player-' + o.id;
     });
     if (playerViewToRemove) {
       $(playerViewToRemove.el).remove();

@@ -6,7 +6,8 @@ var GameControlsView = Backbone.View.extend({
                     'toggleFreeDraw',
                     'enableFreeDrawBtn',
                     'disableFreeDrawBtn',
-                    'updateControls');
+                    'updateControls',
+                    'showControls');
     this.startBtn = this.$('.startGameBtn').removeAttr('disabled');
     this.endBtn = this.$('.endTurnBtn').attr('disabled', 'disabled');
     this.freeDrawBtn = this.$('#freedraw').removeAttr('disabled'); // TODO: why does Firefox persist this attr?
