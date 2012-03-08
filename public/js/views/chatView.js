@@ -63,6 +63,6 @@ var ChatView = Backbone.View.extend({
   },
 
   displayCorrectGuess: function(o) {
-    this.renderNewMessage([o.name, 'guessed correctly:', o.message].join(' '));
+    this.renderNewMessage([o.name, 'guessed correctly:', o.msg].join(' '));
   }
 });

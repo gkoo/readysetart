@@ -7,6 +7,7 @@ var ChatController = function(chatSocket) {
       this.chatSocket = socket;
       _.bindAll(this, 'setupSocketEvents',
                       'addUserMessageToModel',
+                      'notifyCorrectGuess',
                       'handleNameChange',
                       'handleNewLeader',
                       'handlePlayerDisconnect');
@@ -37,6 +38,7 @@ var ChatController = function(chatSocket) {
         _this.collection.addSysMessage(info.name + ' has joined the room.');
       });
       this.chatSocket.on('incomingMessages', this.collection.addMessage);
+      this.chatSocket.on('notifyCorrectGuess', this.notifyCorrectGuess);
     },
 
     // called by chat view when user enters in a message

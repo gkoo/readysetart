@@ -123,6 +123,7 @@ var BoardView = Backbone.View.extend({
   },
 
   updateWordToDraw: function(word) {
+    this.doClear();
     this.wordToDrawEl.find('.word').text(word);
     this.wordToDrawEl.show();
   },

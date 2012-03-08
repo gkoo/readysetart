@@ -15,7 +15,6 @@ GameController = function() {
                 'getPlayerById',
                 'emitGameSocketEvent',
                 'setupSocketEvents',
-                'notifyCorrectGuess',
                 'handleTurnOver');
       this.model = new GameModel();
       gameSocket = io.connect(domainPrefix + '/game');
@@ -134,7 +133,7 @@ GameController = function() {
       });
 
       _this.gameSocket.on('notifyCorrectGuess', function(o) {
-        _this.trigger('server:notifyCorrectGuess', o);
+        _this.trigger('clearBoard');
       });
     },
 
@@ -191,7 +190,6 @@ GameController = function() {
       // Controller Events
       this.bind('server:gameStatus', this.gameStatusController.setGameStatus);
       this.bind('server:gameStatus', this.gameControls.updateControls);
-      this.bind('server:notifyCorrectGuess', this.notifyCorrectGuess);
 
       // Game Controls Events
       this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
@@ -259,10 +257,6 @@ GameController = function() {
           this.gameSocket.emit(o.eventName);
         }
       }
-    },
-
-    notifyCorrectGuess: function(o) {
-      //this.chatController.notifyCorrectGuess(o);
     },
 
     handleTurnOver: function() {

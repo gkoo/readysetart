@@ -43,8 +43,7 @@ Pictionary = function () {
       if (correctGuess) {
         // handle on chat side
         o.callback(correctGuess, o.socket);
-        // TODO: handle on game side
-        // broadcast to gameSocket
+        this.io.emit('notifyCorrectGuess');
         this.sendNextWord();
       }
     }
@@ -55,7 +54,7 @@ Pictionary = function () {
         playersModel = this.model.get('players'),
         currArtistId = playersModel.getCurrentArtist();
 
-    // Send currArtist the first word.
+    // Send currArtist the next word.
     this.io.socket(currArtistId).emit('wordToDraw', nextWord);
   }).bind(this);
 
@@ -177,10 +176,6 @@ Pictionary = function () {
         });
       });
 
-      socket.on('printPlayers', (function () {
-        console.log(this.model.get('players').toJSON());
-      }).bind(this));
-
       // TODO: need to keep a timer on the server side
       socket.on('turnOver', this.handleTurnOver);
 
@@ -229,7 +224,15 @@ Pictionary = function () {
         socket.broadcast.emit('completedPath', { 'senderId': socket.id,
                                                  'points': o });
         path = this.userPaths[socket.id];
-        this.allPaths.push(path.concat(o));
+        if (path && path.length) {
+          if (o && o.length) {
+            path = path.concat(o);
+          }
+          this.allPaths.push(path);
+        }
+        else if (o && o.length) {
+          this.allPaths.push(o);
+        }
         this.userPaths[socket.id] = null;
       }).bind(this));
 
@@ -247,6 +250,11 @@ Pictionary = function () {
         socket.broadcast.emit('clearBoard');
         this.userPaths = {};
         this.allPaths = [];
+      }).bind(this));
+
+      socket.on('debug', (function() {
+        console.log(this.allPaths);
+        console.log(this.userPaths);
       }).bind(this));
     }).bind(this));
 
