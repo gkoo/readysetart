@@ -26,6 +26,7 @@ var GameStatusController = function(o) {
       this.model.set(o);
     },
 
+    // Handles timer for drawer.
     doTimerTick: function() {
       var timeLeft = this.model.get('timeLeft') - 1;
 

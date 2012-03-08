@@ -9,6 +9,7 @@ GameController = function() {
       _.bindAll(this,
                 'setupViews',
                 'setupGameState',
+                'assignSocketHandler',
                 'initEvents',
                 'handleGameModel',
                 'getCurrPlayer',
@@ -20,6 +21,12 @@ GameController = function() {
       gameSocket = io.connect(domainPrefix + '/game');
       chatSocket = io.connect(domainPrefix + '/chat');
       this.gameSocket = gameSocket;
+
+      // bind initGameModel here because we don't bind
+      // the rest of the events until we get the game model
+      // from the server.
+      this.bind('initGameModel', this.handleGameModel);
+
       this.setupSocketEvents();
       return this;
     },
@@ -70,70 +77,39 @@ GameController = function() {
       this.initEvents();
     },
 
+    // Decompose this function out to avoid variable hoisting.
+    assignSocketHandler: function(eventName) {
+      var _this = this;
+      this.gameSocket.on(eventName, function(data) {
+        _this.trigger(eventName, data);
+      });
+    },
+
     // SOCKET.IO EVENTS
     setupSocketEvents: function() {
-      var _this = this;
+      var i, len, eventName, _this = this,
+          // a list of events to delegate to Backbone events
+          eventsToDelegate = ['initGameModel',
+                              'yourTurn',
+                              'gameStatus',
+                              'playerUpdate',
+                              'newPlayer',
+                              'playerDisconnect',
+                              'playerName',
+                              'newPoints',
+                              'completedPath',
+                              'toggleFreeDraw',
+                              'wordToDraw',
+                              'clearBoard',
+                              'notifyCorrectGuess'];
 
-      _this.gameSocket.on('disconnect', function() {
-        console.log('disconnect');
-      });
+      for (i = 0, len = eventsToDelegate.length; i<len; ++i) {
+        eventName = new String(eventsToDelegate[i]);
+        this.assignSocketHandler(eventsToDelegate[i]);
+      }
 
-      _this.gameSocket.on('initGameModel', this.handleGameModel);
-
-      _this.gameSocket.on('userId', function(id) {
+      this.gameSocket.on('userId', function(id) {
         _this.userId = id;
-      });
-
-      _this.gameSocket.on('yourTurn', function () {
-        _this.trigger('yourTurn');
-      });
-
-      _this.gameSocket.on('gameStatus', function (o) {
-        _this.trigger('server:gameStatus', o);
-      });
-
-      _this.gameSocket.on('playerUpdate', function(player) {
-        _this.trigger('playerUpdate', player);
-      });
-
-      _this.gameSocket.on('newPlayer', function(o) {
-        _this.trigger('newPlayer', o);
-      });
-
-      _this.gameSocket.on('playerDisconnect', function(data) {
-        _this.trigger('playerDisconnect', data);
-      });
-
-      _this.gameSocket.on('playerName', function(o) {
-        _this.trigger('playerName', o);
-      });
-
-      _this.gameSocket.on('newStrokeSub', function(o) {
-        _this.trigger('newStrokeSub', o);
-      });
-
-      _this.gameSocket.on('newPoints', function(o) {
-        _this.trigger('newPoints', o);
-      });
-
-      _this.gameSocket.on('completedPath', function(o) {
-        _this.trigger('completedPath', o);
-      });
-
-      _this.gameSocket.on('toggleFreeDraw', function(o) {
-        _this.trigger('toggleFreeDraw', o);
-      });
-
-      _this.gameSocket.on('wordToDraw', function(word) {
-        _this.trigger('wordToDraw', word);
-      });
-
-      _this.gameSocket.on('clearBoard', function() {
-        _this.trigger('clearBoard');
-      });
-
-      _this.gameSocket.on('notifyCorrectGuess', function(o) {
-        _this.trigger('clearBoard');
       });
     },
 
@@ -160,6 +136,7 @@ GameController = function() {
       this.bind('playerUpdate', this.playersColl.playerUpdate);
       this.bind('playerName',   this.playersColl.setPlayerName);
       this.bind('playerDisconnect', this.playersColl.playerDisconnect);
+      this.bind('notifyCorrectGuess', this.boardView.doClear);
       // Communicate with chat this way so that we can display the name of the
       // player that left
       this.playersColl.bind('player:removedPlayer', this.chatController.handlePlayerDisconnect);
@@ -176,7 +153,6 @@ GameController = function() {
       this.bind('newPoints', this.boardView.handleNewPoints);
       this.bind('completedPath', this.boardView.handleCompletedPath);
       this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
-      this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
@@ -184,12 +160,13 @@ GameController = function() {
       // Game Status Events
       this.gameStatusController.bind('turnOver', this.handleTurnOver);
       this.gameStatusController.bind('turnOver', this.boardView.disable);
+      this.gameStatusController.bind('turnOver', this.boardView.reset);
       this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
       this.gameStatusController.bind('artistChange', this.boardView.reset);
 
       // Controller Events
-      this.bind('server:gameStatus', this.gameStatusController.setGameStatus);
-      this.bind('server:gameStatus', this.gameControls.updateControls);
+      this.bind('gameStatus', this.gameStatusController.setGameStatus);
+      this.bind('gameStatus', this.gameControls.updateControls);
 
       // Game Controls Events
       this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
