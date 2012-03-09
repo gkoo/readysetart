@@ -1,11 +1,7 @@
 var GameStatusController = function(o) {
   var controller = {
     initialize: function(o) {
-      this.model = o.model;
-      this.getCurrPlayer = o.getCurrPlayer;
-      this.view = new GameStatusView({ el: $('.gameInfo'),
-                                       model: this.model,
-                                       getPlayerById: o.getPlayerById });
+      _.extend(this, Backbone.Events, o.playerFns);
       _.bindAll(this, 'setGameStatus',
                       'doTimerTick',
                       'restartTimer',
@@ -13,7 +9,10 @@ var GameStatusController = function(o) {
                       'handleGameStatus',
                       'changeArtist');
 
-      _.extend(this, Backbone.Events);
+      this.model = o.model;
+      this.view = new GameStatusView({ el: $('.gameInfo'),
+                                       model: this.model,
+                                       getPlayerById: this.getPlayerById });
       this.model.bind('change:gameStatus', this.handleGameStatus);
       this.model.bind('change:gameStatus', this.view.renderStatus);
       this.model.bind('change:currArtist', this.changeArtist);
@@ -36,7 +35,7 @@ var GameStatusController = function(o) {
         // only leader triggers turn over.
         // TODO: change this so that turnOver event is generated
         // on the server side
-        if (this.getCurrPlayer().get('isLeader')) {
+        if (this.currPlayer.get('isLeader')) {
           this.trigger('turnOver');
         }
       }
@@ -80,7 +79,7 @@ var GameStatusController = function(o) {
     },
 
     changeArtist: function(model, artistId) {
-      if (artistId === this.getCurrPlayer().id) {
+      if (artistId === this.currPlayer.id) {
         // It's current user's turn now. Enable board.
         this.trigger('setupArtistTurn');
       }

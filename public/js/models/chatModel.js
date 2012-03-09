@@ -43,6 +43,8 @@ var MessageCollection = Backbone.Collection.extend({
   },
 
   // add a message not associated with any sender
+  // if addToOutbound is true, it will add it to
+  // the queue of messages to send to the server
   addSysMessage: function(str, addToOutbound) {
     msg = { msg: str,
             sender: -1,

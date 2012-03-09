@@ -42,17 +42,10 @@ GameController = function() {
                                            collection: this.playersColl,
                                            getCurrPlayer: this.getCurrPlayer });
 
-      /*
-      this.teamsView    = new TeamsView({ el:            $('.teamsList'),
-                                          collection:    this.teamsColl,
-                                          getPlayerById: this.getPlayerById });
-      */
-
       this.gameControls         = new GameControlsView({ el: $('#controls'),
                                                          freeDraw: freeDraw });
-      this.gameStatusController = new GameStatusController({ model:         this.gameStatus,
-                                                             getPlayerById: this.getPlayerById,
-                                                             getCurrPlayer:  this.getCurrPlayer });
+      this.gameStatusController = new GameStatusController({ model:     this.gameStatus,
+                                                             playerFns: this.playerHelperFns });
       this.gameIntro            = new GameIntroView({ el: $('#intro') });
       this.boardView            = new BoardView({ el: $('#board'),
                                                   freeDraw: freeDraw });
@@ -99,18 +92,14 @@ GameController = function() {
                               'newPoints',
                               'completedPath',
                               'toggleFreeDraw',
+                              'nextUp',
                               'wordToDraw',
                               'clearBoard',
                               'notifyCorrectGuess'];
 
       for (i = 0, len = eventsToDelegate.length; i<len; ++i) {
-        eventName = new String(eventsToDelegate[i]);
         this.assignSocketHandler(eventsToDelegate[i]);
       }
-
-      this.gameSocket.on('userId', function(id) {
-        _this.userId = id;
-      });
     },
 
     // BACKBONE EVENTS
@@ -156,6 +145,7 @@ GameController = function() {
       this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
+      this.bind('nextUp', this.chatController.notifyNextArtist);
 
       // Game Status Events
       this.gameStatusController.bind('turnOver', this.handleTurnOver);

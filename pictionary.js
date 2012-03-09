@@ -1,6 +1,7 @@
 var game     = require('./game'),
     wordBase = require('./wordbase/wordbase.js'),
     TURN_DURATION = 30000,
+    TURN_BREAK_DURATION = 5000,
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,
 
@@ -67,19 +68,12 @@ Pictionary = function () {
 
     // Player is authorized to start the game.
     players.decideArtistOrder();
-    currArtistId = players.getCurrentArtist();
-
-    newStatus = { 'gameStatus': o.gameStatus, // set new status for all players
-                  'currArtist': currArtistId,
-                  'turnEnd': turnEnd };
-
-    gameStatusModel.set(newStatus);
-    this.io.emit('gameStatus', newStatus);
-    this.sendNextWord();
 
     // Clear cached paths
     this.userPaths = {};
     this.allPaths = [];
+
+    this.startNextTurn();
   };
 
   this.handleGameFinish = (function (o) {
@@ -89,7 +83,7 @@ Pictionary = function () {
     this.io.emit('gameStatus', newStatus);
   }).bind(this);
 
-  this.handleTurnOver = (function () {
+  this.startNextTurn = (function () {
     var players   = this.model.get('players'),
         gameStatusModel = this.model.get('gameStatus'),
         nextArtist, newStatus, nextWord;
@@ -97,9 +91,12 @@ Pictionary = function () {
     if (players.hasNextArtist()) {
       nextArtist = players.getNextArtist();
       newStatus = { 'currArtist': nextArtist };
-      this.io.emit('gameStatus', newStatus);
-      gameStatusModel.set(newStatus);
-      this.sendNextWord();
+      this.io.emit('nextUp', newStatus);
+      setTimeout((function () {
+        gameStatusModel.set(newStatus);
+        this.io.emit('gameStatus', newStatus);
+        this.sendNextWord();
+      }).bind(this), TURN_BREAK_DURATION);
     }
     else {
       // TODO: no more artists, signal end of round
@@ -177,7 +174,7 @@ Pictionary = function () {
       });
 
       // TODO: need to keep a timer on the server side
-      socket.on('turnOver', this.handleTurnOver);
+      socket.on('turnOver', this.startNextTurn);
 
       socket.on('disconnect', function () {
         var player, wasLeader, newLeader, id = socket.id;

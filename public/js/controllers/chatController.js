@@ -8,6 +8,7 @@ var ChatController = function(chatSocket) {
       _.bindAll(this, 'setupSocketEvents',
                       'addUserMessageToModel',
                       'notifyCorrectGuess',
+                      'notifyNextArtist',
                       'handleNameChange',
                       'handleNewLeader',
                       'handlePlayerDisconnect');
@@ -73,6 +74,11 @@ var ChatController = function(chatSocket) {
 
     handleNameChange: function(o) {
       this.collection.addSysMessage(o.oldName + ' changed name to ' + o.newName + '.', true);
+    },
+
+    notifyNextArtist: function (data) {
+      var nextArtist = this.getPlayerById(data.currArtist);
+      this.collection.addSysMessage('Next up: ' + nextArtist.get('name'))
     }
   };
   return controller.initialize(chatSocket);
