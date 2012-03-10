@@ -6,8 +6,9 @@ var _u        = require('underscore'),
     playerLib = require('./public/js/models/playerModel.js'),
 
 PlayersCollection = playerLib.PlayersCollection.extend({
+  // Returns the ID of the current artist
   getCurrentArtist: function() {
-    return this.artistOrder && this.pos >= 0 && this.artistOrder.length ? this.artistOrder[0] : 0;
+    return this.artistOrder && this.pos >= 0 && this.artistOrder.length ? this.artistOrder[this.pos] : 0;
   },
 
   hasNextArtist: function() {

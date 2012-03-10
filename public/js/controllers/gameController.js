@@ -15,12 +15,12 @@ GameController = function() {
                 'getCurrPlayer',
                 'getPlayerById',
                 'emitGameSocketEvent',
-                'setupSocketEvents',
-                'handleTurnOver');
+                'setupSocketEvents');
       this.model = new GameModel();
       gameSocket = io.connect(domainPrefix + '/game');
       chatSocket = io.connect(domainPrefix + '/chat');
       this.gameSocket = gameSocket;
+      this.chatController = new ChatController(chatSocket);
 
       // bind initGameModel here because we don't bind
       // the rest of the events until we get the game model
@@ -52,6 +52,9 @@ GameController = function() {
       _.extend(this.boardView, this.playerHelperFns);
     },
 
+    // First, set up the models.
+    // Then, set up the views.
+    // Finally, set up the events.
     setupGameState: function(gameData) {
       this.gameStatus  = new GameStatusModel(gameData.gameStatus);
       this.playersColl = new PlayersCollection(gameData.players);
@@ -60,12 +63,8 @@ GameController = function() {
       this.playerHelperFns = { 'currPlayer':    this.currPlayer,
                                'getPlayerById': this.getPlayerById };
 
-      // teams = _.extend(gameData.teams, playerHelperFns),
-
-      this.chatController = new ChatController(chatSocket);
       _.extend(this.chatController, this.playerHelperFns);
 
-      // this.teamsColl      = new TeamCollection(teams);
       this.setupViews();
       this.initEvents();
     },
@@ -146,17 +145,19 @@ GameController = function() {
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
       this.bind('nextUp', this.chatController.notifyNextArtist);
+      this.bind('nextUp', this.gameStatusController.clearTimer);
 
       // Game Status Events
-      this.gameStatusController.bind('turnOver', this.handleTurnOver);
       this.gameStatusController.bind('turnOver', this.boardView.disable);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
+      this.gameStatusController.bind('clearBoard', this.boardView.doClear);
       this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
       this.gameStatusController.bind('artistChange', this.boardView.reset);
 
       // Controller Events
       this.bind('gameStatus', this.gameStatusController.setGameStatus);
       this.bind('gameStatus', this.gameControls.updateControls);
+      this.bind('gameStatus', this.boardView.doClear);
 
       // Game Controls Events
       this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
@@ -224,10 +225,6 @@ GameController = function() {
           this.gameSocket.emit(o.eventName);
         }
       }
-    },
-
-    handleTurnOver: function() {
-      this.gameSocket.emit('turnOver');
     },
 
     debug: function() {

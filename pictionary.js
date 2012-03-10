@@ -59,21 +59,45 @@ Pictionary = function () {
     this.io.socket(currArtistId).emit('wordToDraw', nextWord);
   }).bind(this);
 
-  this.handleGameStart = function (o) {
-    var players = this.model.get('players'),
-        gameStatusModel = this.model.get('gameStatus'),
-        turnEnd = (new Date()).getTime() + this.turn_duration,
-        currArtistId,
-        newStatus;
+  // Start the actual turn for the artist.
+  this.startNextTurn = (function () {
+    var model = this.model;
+        currArtist = model.get('players').getCurrentArtist(),
+        newStatus = { 'currArtist': currArtist };
 
-    // Player is authorized to start the game.
-    players.decideArtistOrder();
+    model.get('gameStatus').set(newStatus);
+    this.io.emit('gameStatus', newStatus);
+    this.sendNextWord();
+    this.turnTimeout = setTimeout(this.startNextWarmUpAndTurn, this.turn_duration);
+  }).bind(this);
+
+  // Starts the next turn, buffered by 5 seconds to
+  // allow the players to prepare.
+  this.startNextWarmUpAndTurn = (function () {
+    var players   = this.model.get('players'),
+        nextArtist, newStatus;
+
+    if (players.hasNextArtist()) {
+      nextArtist = players.getNextArtist();
+      newStatus = { 'currArtist': nextArtist };
+      this.io.emit('nextUp', newStatus); // send the warm-up message
+      setTimeout(this.startNextTurn, TURN_BREAK_DURATION);
+    }
+    else {
+      // TODO: no more artists, signal end of round
+      this.handleGameFinish();
+    }
+  }).bind(this);
+
+  this.handleGameStart = function (o) {
+    this.model.get('players').decideArtistOrder();
 
     // Clear cached paths
     this.userPaths = {};
     this.allPaths = [];
 
-    this.startNextTurn();
+    this.io.emit('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
+    this.startNextWarmUpAndTurn();
   };
 
   this.handleGameFinish = (function (o) {
@@ -83,27 +107,7 @@ Pictionary = function () {
     this.io.emit('gameStatus', newStatus);
   }).bind(this);
 
-  this.startNextTurn = (function () {
-    var players   = this.model.get('players'),
-        gameStatusModel = this.model.get('gameStatus'),
-        nextArtist, newStatus, nextWord;
-
-    if (players.hasNextArtist()) {
-      nextArtist = players.getNextArtist();
-      newStatus = { 'currArtist': nextArtist };
-      this.io.emit('nextUp', newStatus);
-      setTimeout((function () {
-        gameStatusModel.set(newStatus);
-        this.io.emit('gameStatus', newStatus);
-        this.sendNextWord();
-      }).bind(this), TURN_BREAK_DURATION);
-    }
-    else {
-      // TODO: no more artists, signal end of round
-      this.handleGameFinish();
-    }
-  }).bind(this);
-
+  // Start or finish game.
   this.handleGameStatus = (function (o) {
     if (typeof o.gameStatus !== 'undefined') {
       if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
@@ -115,23 +119,52 @@ Pictionary = function () {
     }
   }).bind(this);
 
+  this.handleDisconnect = (function (socket) {
+    var id         = socket.id,
+        players    = this.model.get('players'),
+        player     = players.get(id),
+        wasLeader  = player.get('isLeader'),
+        currArtist = this.model.get('players').getCurrentArtist(),
+        newLeader;
+
+    // Remove player from players array
+    players.remove(player);
+
+    // If player was leader, reassign leader
+    if (wasLeader && players.length) {
+      newLeader = players.at(0);
+      newLeader.set({ 'isLeader': true });
+    }
+
+    // If player was currArtist, begin new turn
+    // TODO: Need to make sure there's not a race condition
+    // where we start a new turn here, and then
+    // the timer runs out and we try to start a new turn again.
+    if (currArtist === id) {
+      this.startNextTurn();
+    }
+
+    socket.broadcast.emit('playerDisconnect', { 'id': id, 'newLeaderId': newLeader ? newLeader.id : 0 });
+  }).bind(this);
+
+  // Create the data to pass to a newly connected player
+  this.createInitPlayerInfo = (function (id) {
+    var players   = this.model.get('players'),
+        name      = 'Player ' + id,
+        isLeader  = !players.length; // first player defaults to leader
+
+    return { 'id':       id,
+             'name':     name,
+             'isLeader': isLeader };
+  }).bind(this);
+
   // Listen to Socket.io
   this.listen = function(io) {
     this.io = io.of('/game');
 
     this.io.on('connection', (function (socket) {
-      var players   = this.model.get('players'),
-          yourId    = socket.id,
-          yourName  = 'Player ' + yourId,
-          isLeader  = !players.length, // first player defaults to leader
-          //yourTeam  = this.computeUserTeam(yourId),
-          initInfo,
-          gameStatusModel = this.model.get('gameStatus');
-
-      initInfo = { 'id':       yourId,
-                   'name':     yourName,
-                   'isLeader': isLeader };
-                   //'team': yourTeam };
+      var initInfo = this.createInitPlayerInfo(socket.id),
+          players   = this.model.get('players');
 
       players.add(initInfo);
 
@@ -176,27 +209,9 @@ Pictionary = function () {
       // TODO: need to keep a timer on the server side
       socket.on('turnOver', this.startNextTurn);
 
-      socket.on('disconnect', function () {
-        var player, wasLeader, newLeader, id = socket.id;
-
-        player = players.get(id);
-        wasLeader = player.get('isLeader');
-
-        // Remove player from players array
-        players.remove(player);
-
-        if (wasLeader && players.length) {
-          newLeader = players.at(0);
-          newLeader.set({ 'isLeader': true });
-        }
-
-        // Remove player from any teams (s)he is on.
-        // _this.model.get('teams').removePlayer(id);
-
-        socket.broadcast.emit('playerDisconnect', { 'id': id,
-                                                    'newLeaderId': newLeader ? newLeader.id : 0 });
-        console.log(socket.id + ' disconnected');
-      });
+      socket.on('disconnect', (function () {
+        this.handleDisconnect(socket);
+      }).bind(this));
 
       socket.on('sync', (function (data) {
         this.sync(data, socket);

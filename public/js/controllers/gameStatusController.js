@@ -4,8 +4,8 @@ var GameStatusController = function(o) {
       _.extend(this, Backbone.Events, o.playerFns);
       _.bindAll(this, 'setGameStatus',
                       'doTimerTick',
+                      'clearTimer',
                       'restartTimer',
-                      'startGame',
                       'handleGameStatus',
                       'changeArtist');
 
@@ -29,19 +29,24 @@ var GameStatusController = function(o) {
     doTimerTick: function() {
       var timeLeft = this.model.get('timeLeft') - 1;
 
+      // End of turn
       if (timeLeft < 0 && this.timerInterval) {
-        clearInterval(this.timerInterval);
-        this.timerInterval = null;
-        // only leader triggers turn over.
-        // TODO: change this so that turnOver event is generated
-        // on the server side
-        if (this.currPlayer.get('isLeader')) {
-          this.trigger('turnOver');
-        }
+        this.clearTimer();
+        // TODO: want to do anything else here?
       }
+      // Tick down one second
       else {
         this.model.set({ 'timeLeft' : timeLeft });
       }
+    },
+
+    // Stops the timer and sets timeLeft to zero.
+    clearTimer: function () {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+        this.timerInterval = null;
+      }
+      this.model.set({ 'timeLeft' : 0 });
     },
 
     restartTimer: function() {
@@ -62,19 +67,14 @@ var GameStatusController = function(o) {
       this.model.set({ 'timeLeft' : Math.floor(timeLeft) });
     },
 
-    startGame: function() {
-      if (this.model.get('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
-        console.log('[warning] Game status is not IN_PROGRESS.');
-      }
-
-      this.restartTimer();
-      this.view.render();
-    },
-
     handleGameStatus: function(model, status) {
-      if (model.get('gameStatus') === GameStatusEnum.IN_PROGRESS
+      var gameStatus = model.get('gameStatus');
+      if (gameStatus === GameStatusEnum.IN_PROGRESS
           && model.previous('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
-        this.startGame();
+        this.clearTimer();
+      }
+      else if (gameStatus === GameStatusEnum.FINISHED) {
+        this.trigger('clearBoard');
       }
     },
 
