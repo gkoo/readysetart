@@ -14,7 +14,7 @@ var ChatController = function(chatSocket) {
                       'handlePlayerDisconnect');
       this.collection = new MessageCollection({ bufferLength: this.BUFFER_LENGTH });
 
-      this.view  = new ChatView({ el: $('#chat-container'),
+      this.view  = new ChatView({ el: $('#chat'),
                                   collection: this.collection });
 
       this.view.bind('submitMessage', this.addUserMessageToModel);

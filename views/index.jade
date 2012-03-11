@@ -1,21 +1,29 @@
-#intro
-  != partial('intro')
-!= partial('controls')
-#main
-  h1= title
-  #board
-    canvas#gameBoard(width=800, height=600)
-    .boardControls
-      div.wordToDraw
-        span.wordToDrawLabel Your word:
-        span.word
-  .sidebar
-    .gameInfo
-      p.status Game has not started.
-      p.artist No one is currently drawing.
-      p.timeLeft 0:00
-    .playerInfo
-      h1 Players
-      ul.playerList
+!!!
+html
+  head
+    title= title
+    //link(rel='stylesheet', type='text/css', href='/css/style.css')
+    link(rel='stylesheet/less', type='text/css', href='/css/style.less')
+    script(type='text/javascript', src='/js/less-1.2.1.min.js')
+body
+  #intro
+    != partial('intro')
+  != partial('controls')
+  #main
+    h1= title
+    #board
+      canvas#gameBoard(width=800, height=600)
+      .boardControls
+        div.wordToDraw
+          span.wordToDrawLabel Your word:
+          span.word
+    #sidebar
+      .gameInfo
+        p.status Game has not started.
+        p.artist No one is currently drawing.
+        p.timeLeft 0:00
+      .playerInfo
+        h1 Players
+        ul.playerList
     != partial('chat')
-!= partial('scripts')
+  != partial('scripts')

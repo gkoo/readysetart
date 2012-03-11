@@ -25,7 +25,10 @@ app.configure('production', function(){
 
 app.get('/', function(req, res){
   res.render('index', {
-    title: 'Ready, Set, Art!'
+    locals: {
+      title: 'Ready, Set, Art!'
+    },
+    layout: false
   });
 });
 

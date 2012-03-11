@@ -2,6 +2,7 @@ body {
   font: 14px Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
+  text-align: center;
 }
 
 a {
@@ -9,10 +10,12 @@ a {
 }
 
 #main {
+  margin: 0 auto;
   width: 1000px;
 }
 
 #intro, #intro .overlay, #intro .intro-container {
+  display: none; /* TODO: remove this. */
   position: absolute;
   top: 0;
   left: 0;
@@ -50,28 +53,14 @@ a {
   }
 }
 
-#board {
-  float: left;
-  width: 800px;
-  .clearBtn {
-    float: left;
-  }
-}
-
 .wordToDraw {
   display: none;
   float: left;
   padding-left: 20px;
 }
 
-#gameBoard {
-  border: 1px solid #000;
-  width: 800px;
-  height: 600px;
-}
-
-.sidebar {
-  float: right;
+#sidebar {
+  text-align: left;
   width: 180px;
 
   .gameInfo {
@@ -86,26 +75,17 @@ a {
   color: #0c0;
 }
 
-.chat {
-  border: 1px solid #000;
-  height: 400px;
-  margin: 0;
-  padding: 0;
-
-  li {
-    list-style: none;
-  }
-}
-
-
 #controls {
   border: 1px solid #000;
   clear: both;
   display: none;
   margin-top: 20px;
   padding: 20px;
-  
+
   input {
     margin-left: 20px;
   }
 }
+
+@import "board.less";
+@import "chat.less";
