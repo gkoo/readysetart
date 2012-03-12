@@ -6,24 +6,25 @@ html
     link(rel='stylesheet/less', type='text/css', href='/css/style.less')
     script(type='text/javascript', src='/js/less-1.2.1.min.js')
 body
-  #intro
+  #changeNameModal
     != partial('intro')
-  != partial('controls')
+  #gameStatus
+    h1.title #{title}
+    p.status
+      | Game:
+      span.value Not started
+    p.artist
+      | Artist:
+      span.value No one.
+    p.timeLeft
+      | Time left:
+      span.value 0 seconds
   #main
-    h1= title
-    #board
-      canvas#gameBoard(width=800, height=600)
-      .boardControls
-        div.wordToDraw
-          span.wordToDrawLabel Your word:
-          span.word
-    #sidebar
-      .gameInfo
-        p.status Game has not started.
-        p.artist No one is currently drawing.
-        p.timeLeft 0:00
-      .playerInfo
-        h1 Players
-        ul.playerList
+    != partial('controls')
+    != partial('board')
+    #playerInfo
+      h3 Players
+      ul.playerList
     != partial('chat')
+  .clearfix
   != partial('scripts')

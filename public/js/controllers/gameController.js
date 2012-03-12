@@ -15,7 +15,8 @@ GameController = function() {
                 'getCurrPlayer',
                 'getPlayerById',
                 'emitGameSocketEvent',
-                'setupSocketEvents');
+                'setupSocketEvents',
+                'debug');
       this.model = new GameModel();
       gameSocket = io.connect(domainPrefix + '/game');
       chatSocket = io.connect(domainPrefix + '/chat');
@@ -38,7 +39,7 @@ GameController = function() {
       // I decided I want to implement free-for-all first, since it will be
       // easier. If I have time, I'll come back to teams in the future.
       var freeDraw = this.gameStatus.get('freeDraw');
-      this.playersView = new PlayersView({ el: $('.playerInfo'),
+      this.playersView = new PlayersView({ el: $('#playerInfo'),
                                            collection: this.playersColl,
                                            getCurrPlayer: this.getCurrPlayer });
 
@@ -46,7 +47,7 @@ GameController = function() {
                                                          freeDraw: freeDraw });
       this.gameStatusController = new GameStatusController({ model:     this.gameStatus,
                                                              playerFns: this.playerHelperFns });
-      this.gameIntro            = new GameIntroView({ el: $('#intro') });
+      this.changeNameView       = new ChangeNameView({ el: $('#changeNameModal') });
       this.boardView            = new BoardView({ el: $('#board'),
                                                   freeDraw: freeDraw });
       _.extend(this.boardView, this.playerHelperFns);
@@ -113,11 +114,13 @@ GameController = function() {
         _this.toggleYourTurn(false);
       });
 
-      this.gameIntro.bind('setName', function(name) {
+      this.changeNameView.bind('setName', function(name) {
         var o = { id: _this.userId,
                   name: name };
         _this.playersColl.setPlayerName(o);
       });
+
+      this.chatController.bind('beginChangeName', this.changeNameView.show);
 
       // PlayerCollection Events
       this.bind('newPlayer',    this.playersColl.handleNewPlayer);
@@ -138,6 +141,7 @@ GameController = function() {
       // Board Events
       this.boardView.bind('boardView:sendPoints', this.emitGameSocketEvent);
       this.boardView.bind('boardView:completedPath', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:clear', this.emitGameSocketEvent);
       this.bind('newPoints', this.boardView.handleNewPoints);
       this.bind('completedPath', this.boardView.handleCompletedPath);
       this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
@@ -228,7 +232,8 @@ GameController = function() {
     },
 
     debug: function() {
-      this.gameSocket.emit('debug');
+      alert(this.chatController.view.atBottomOfChat());
+      //this.gameSocket.emit('debug');
     }
   };
 

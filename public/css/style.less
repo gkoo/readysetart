@@ -1,7 +1,26 @@
+/* LESS VARIABLES AND MIXINS */
+@baby-blue: #87cefa;
+@dark-grey: #2f4f4f;
+.rounded-corners-all (@radius: 5px) {
+  -moz-border-radius: @radius;
+  -o-border-radius: @radius;
+  -webkit-border-radius: @radius;
+  border-radius: @radius;
+}
+
+.rounded-corners (@top-left, @top-right, @bottom-right, @bottom-left) {
+  -moz-border-radius: @top-left @top-right @bottom-right @bottom-left;
+  -o-border-radius: @top-left @top-right @bottom-right @bottom-left;
+  -webkit-border-radius: @top-left @top-right @bottom-right @bottom-left;
+  border-radius: @top-left @top-right @bottom-right @bottom-left;
+}
+
+/* NORMAL STUFF */
 body {
+  background-color: @baby-blue;
   font: 14px Helvetica, Arial, sans-serif;
   margin: 0;
-  padding: 0;
+  padding: 0 0 20px;
   text-align: center;
 }
 
@@ -14,8 +33,7 @@ a {
   width: 1000px;
 }
 
-#intro, #intro .overlay, #intro .intro-container {
-  display: none; /* TODO: remove this. */
+#changeNameModal, #changeNameModal .overlay, #changeNameModal .intro-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -26,10 +44,12 @@ a {
   text-align: center;
 }
 
-#intro {
+#changeNameModal {
+  display: none;
+
   .overlay {
     background-color: #000;
-    z-index: 0;
+    z-index: 1;
 
     -moz-opacity: 0.5;
     -webkit-opacity: 0.5;
@@ -59,27 +79,11 @@ a {
   padding-left: 20px;
 }
 
-#sidebar {
-  text-align: left;
-  width: 180px;
-
-  .gameInfo {
-    display: none;
-  }
-}
-
-.player.currUser {
-  font-weight: bold;
-}
-.player.leader {
-  color: #0c0;
-}
-
 #controls {
   border: 1px solid #000;
+  border-top: none;
   clear: both;
   display: none;
-  margin-top: 20px;
   padding: 20px;
 
   input {
@@ -87,5 +91,11 @@ a {
   }
 }
 
+.clearfix {
+  clear: both;
+}
+
+@import "status.less";
+@import "player.less";
 @import "board.less";
 @import "chat.less";

@@ -56,12 +56,14 @@ var BoardView = Backbone.View.extend({
   },
 
   events: {
+    'click #clearBoard': 'doClear'
   },
 
   doClear: function() {
     this.path = new Path.Rectangle(new Point(0, 0), view.viewSize);
     this.path.fillColor = '#fff';
     view.draw();
+    this.trigger('boardView:clear', { 'eventName': 'clearBoard' });
   },
 
   doDrawSleep: function () {
@@ -245,5 +247,4 @@ var BoardView = Backbone.View.extend({
                                              'data': points });
     }
   }
-
 });

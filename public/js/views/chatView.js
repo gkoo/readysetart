@@ -4,6 +4,7 @@ var ChatView = Backbone.View.extend({
     _.bindAll(this,
               'render',
               'renderNewMessage',
+              'renderUserMessage',
               'addChatMessage',
               'getPlayerNameById',
               'handleChatMessage',
@@ -13,20 +14,26 @@ var ChatView = Backbone.View.extend({
     this.$chatMessages = this.$('.chat-messages');
     this.$textField  = this.$('.msg');
     this.chatHeight = this.$('.chat-container').height();
+    this.chatMsgTemplate = _.template('<li class="chatMsg"><span class="userName"><%= name %></span>: <span class="chatMsgText"><%= msg %></span></li>');
     this.render();
   },
 
   events: {
-    'submit #chatForm': 'handleChatMessage'
+    'submit #chatForm': 'handleChatMessage',
+    'click #changeNameBtn': 'changeName'
+  },
+
+  // Returns true if chat window is already scrolled to
+  // bottom.
+  atBottomOfChat: function () {
+    var currScrollTop = this.$chatContainer.scrollTop();
+    return currScrollTop >= this.$chatMessages.height() - this.chatHeight - 20; /* 20 pixel just acts as buffer */
   },
 
   // Scroll to the bottom of the chat window.
   scrollToBottom: function () {
-    var paddingTop    = parseInt(this.$chatMessages.css('padding-top'), 10),
-        paddingBottom = parseInt(this.$chatMessages.css('padding-bottom'), 10);
-        scrollTop     = this.$chatMessages.height()
-
-    this.$chatContainer.scrollTop(scrollTop);
+    var newScrollTop  = this.$chatMessages.height();
+    this.$chatContainer.scrollTop(newScrollTop);
   },
 
   render: function() {
@@ -36,9 +43,25 @@ var ChatView = Backbone.View.extend({
   },
 
   renderNewMessage: function(messageStr) {
-    var newMsg = $('<li>').text(messageStr);
+    var newMsg = $('<li>').addClass('chatMsg').text(messageStr),
+        wasAtBottom = this.atBottomOfChat();
+
     this.$chatMessages.append(newMsg);
-    this.scrollToBottom();
+    // Only scroll to bottom if we were originally at bottom.
+    if (wasAtBottom) {
+      this.scrollToBottom();
+    }
+  },
+
+  renderUserMessage: function(name, text) {
+    var chatMsgHtml = this.chatMsgTemplate({ "name": name, "msg": text }),
+        wasAtBottom = this.atBottomOfChat();
+
+    this.$chatMessages.append($(chatMsgHtml));
+    // Only scroll to bottom if we were originally at bottom.
+    if (wasAtBottom) {
+      this.scrollToBottom();
+    }
   },
 
   addChatMessage: function(message) {
@@ -47,10 +70,10 @@ var ChatView = Backbone.View.extend({
         time   = message.get('time'),
         text   = message.get('msg');
 
-    if (name) {
-      this.renderNewMessage([name, text].join(': '));
+    if (name && text) {
+      this.renderUserMessage(name, text);
     }
-    else {
+    else if (text) {
       this.renderNewMessage(text);
     }
   },
@@ -72,7 +95,12 @@ var ChatView = Backbone.View.extend({
       this.trigger('submitMessage', msg);
       this.$textField.val('');
     }
+    this.scrollToBottom();
     evt.preventDefault();
+  },
+
+  changeName: function () {
+    this.trigger('beginChangeName');
   },
 
   displayCorrectGuess: function(o) {

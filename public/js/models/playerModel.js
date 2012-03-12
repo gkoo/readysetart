@@ -115,7 +115,7 @@ PlayersCollection = Backbone.Collection.extend({
       console.log('[err] couldn\'t find player to remove');
     }
 
-    this.promoteLeader(data.newLeaderId);
+    if (data.newLeaderId) { this.promoteLeader(data.newLeaderId); }
   }
 });
 

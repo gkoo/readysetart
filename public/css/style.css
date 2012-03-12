@@ -1,16 +1,26 @@
-body{font:14px Helvetica,Arial,sans-serif;margin:0;padding:0;}
+body{background-color:#87cefa;font:14px Helvetica,Arial,sans-serif;margin:0;padding:0 0 20px;text-align:center;}
 a{color:#00B7FF;}
-#main{width:1000px;}
-#intro,#intro .overlay,#intro .intro-container{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;}
-#intro .overlay{background-color:#000;z-index:0;-moz-opacity:0.5;-webkit-opacity:0.5;opacity:0.5;}
-#intro .intro-container{z-index:5;}
-#intro .content{background-color:#fff;border:1px solid #000;margin:200px auto;padding:20px;width:600px;}#intro .content p{margin:5px 0;}
-#board{float:left;width:800px;}#board .clearBtn{float:left;}
+#main{margin:0 auto;width:1000px;}
+#changeNameModal,#changeNameModal .overlay,#changeNameModal .intro-container{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;}
+#changeNameModal{display:none;}#changeNameModal .overlay{background-color:#000;z-index:1;-moz-opacity:0.5;-webkit-opacity:0.5;opacity:0.5;}
+#changeNameModal .intro-container{z-index:5;}
+#changeNameModal .content{background-color:#fff;border:1px solid #000;margin:200px auto;padding:20px;width:600px;}#changeNameModal .content p{margin:5px 0;}
 .wordToDraw{display:none;float:left;padding-left:20px;}
-#gameBoard{border:1px solid #000;width:800px;height:600px;}
-.sidebar{float:right;width:180px;}.sidebar .gameInfo{display:none;}
+#controls{border:1px solid #000;border-top:none;clear:both;display:none;padding:20px;}#controls input{margin-left:20px;}
+.clearfix{clear:both;}
+#gameStatus{background-color:#2f4f4f;color:#fff;padding:5px 10px;}#gameStatus .title,#gameStatus p{display:inline;font-size:20px;font-weight:bold;margin:0;padding:0 40px;}#gameStatus .title .value,#gameStatus p .value{font-weight:normal;}
+#playerInfo{float:left;margin-left:200px;text-align:left;width:300px;}
+.playerList{list-style:none;margin:0;padding:0;}.playerList .player{padding:0 0 0 24px;}
 .player.currUser{font-weight:bold;}
-.player.leader{color:#0c0;}
-.chat{border:1px solid #000;height:400px;margin:0;padding:0;}
-.chat li{list-style:none;}
-#controls{border:1px solid #000;clear:both;display:none;margin-top:20px;padding:20px;}#controls input{margin-left:20px;}
+.player.leader{background:transparent url(/img/leader.png) no-repeat left center;}
+#board{margin:20px 0;min-height:640px;}
+#boardControlsContainer{background-color:#000;float:left;margin:0 20px 0 0;height:600px;padding:20px;width:140px;-moz-border-radius:10px;-o-border-radius:10px;-webkit-border-radius:10px;border-radius:10px;}
+#boardControls{background-color:#fff;height:580px;padding:20px 0 0;}
+#boardContainer{background-color:#ccc;float:left;padding:20px;width:760px;height:600px;-moz-border-radius:10px;-o-border-radius:10px;-webkit-border-radius:10px;border-radius:10px;}
+#gameBoard{background-color:#fff;width:760px;height:600px;-moz-border-radius:10px;-o-border-radius:10px;-webkit-border-radius:10px;border-radius:10px;}
+#chat{border:1px solid #000;float:left;position:relative;text-align:left;width:498px;height:150px;-moz-border-radius:5px;-o-border-radius:5px;-webkit-border-radius:5px;border-radius:5px;}
+.chat-container{background-color:#fff;overflow:auto;overflow-x:hidden;overflow-y:auto;height:125px;-moz-border-radius:5px 5px 0 0;-o-border-radius:5px 5px 0 0;-webkit-border-radius:5px 5px 0 0;border-radius:5px 5px 0 0;}
+.chat-messages{background-color:#fff;margin:0;padding:0;}.chat-messages .chatMsg{list-style:none;margin:0;padding:5px 10px;}.chat-messages .chatMsg:nth-child(even){background-color:#eee;}
+.chat-messages .chatMsg .userName{font-weight:bold;}
+#chatForm{background-color:#eee;border-top:1px solid #ccc;padding:2px 0 0 10px;height:25px;width:488px;position:absolute;left:0;bottom:0;-moz-border-radius:0 0 5px 5px;-o-border-radius:0 0 5px 5px;-webkit-border-radius:0 0 5px 5px;border-radius:0 0 5px 5px;}#chatForm input{margin-right:5px;}
+#chatForm .msg{width:250px;}

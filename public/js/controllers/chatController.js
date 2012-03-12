@@ -5,7 +5,9 @@ var ChatController = function(chatSocket) {
     initialize: function(socket) {
       var _this = this;
       this.chatSocket = socket;
+      _.extend(this, Backbone.Events);
       _.bindAll(this, 'setupSocketEvents',
+                      'setupBackboneEvents',
                       'addUserMessageToModel',
                       'notifyCorrectGuess',
                       'notifyNextArtist',
@@ -17,17 +19,25 @@ var ChatController = function(chatSocket) {
       this.view  = new ChatView({ el: $('#chat'),
                                   collection: this.collection });
 
-      this.view.bind('submitMessage', this.addUserMessageToModel);
-      this.collection.bind('addMessage', this.view.addChatMessage);
-
       setInterval(function() {
         var newMessages = _this.collection.flushOutboundMessages();
         if (newMessages && newMessages.length) {
           _this.chatSocket.emit('newMessages', newMessages); // send message to server
         }
       }, 500);
+      this.setupBackboneEvents();
       this.setupSocketEvents();
       return this;
+    },
+
+    setupBackboneEvents: function () {
+      var _this = this;
+      this.view.bind('submitMessage', this.addUserMessageToModel);
+      this.view.bind('beginChangeName', function () {
+        // bubble event up to gameController.
+        _this.trigger('beginChangeName');
+      });
+      this.collection.bind('addMessage', this.view.addChatMessage);
     },
 
     setupSocketEvents: function () {
@@ -78,6 +88,8 @@ var ChatController = function(chatSocket) {
 
     notifyNextArtist: function (data) {
       var nextArtist = this.getPlayerById(data.currArtist);
+      console.log('nextArtist');
+      console.log(data.currArtist);
       this.collection.addSysMessage('Next up: ' + nextArtist.get('name'))
     }
   };

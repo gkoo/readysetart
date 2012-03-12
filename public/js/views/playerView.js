@@ -4,27 +4,37 @@ var PlayerView = Backbone.View.extend({
   initialize: function(o) {
     // bind "this" to PlayerView
     _.bindAll(this, 'render');
-    this.model.bind('change', this.render, this); // update the view every time the model changes.
+    this.model.bind('change:name', this.renderName, this);
+    this.model.bind('change:isLeader', this.renderLeader, this);
     this.getCurrPlayer = o.getCurrPlayer;
-    this.render();
   },
 
-  render: function() {
-    var el         = $(this.el),
-        model      = this.model,
-        currPlayer = this.getCurrPlayer(),
-        className  = 'player';
+  template: _.template('<li id="player-<%= id %>" class="player<% if (isLeader) { %> leader<% } %>"><%= name %></li>'),
 
-    el.text(model.get('name'));
-    el.attr('id', 'player-' + this.model.get('id'));
-    if (model.get('isLeader')) {
-      className += ' leader';
+  render: function() {
+    var modelJSON  = this.model.toJSON(),
+        playerHtml = this.template(modelJSON),
+        currPlayer = this.getCurrPlayer(),
+        newEl = $(playerHtml);
+
+    if (currPlayer && this.model.id === currPlayer.id) {
+      newEl.addClass('currUser');
     }
-    el.addClass(className);
-    if (currPlayer && model.id === currPlayer.id) {
-      el.addClass('currUser');
+    this.setElement(newEl);
+    return this.el;
+  },
+
+  renderName: function () {
+    this.$el.text(this.model.get('name'));
+  },
+
+  renderLeader: function () {
+    if (this.model.get('isLeader')) {
+      this.$el.addClass('leader');
     }
-    return el;
+    else {
+      this.$el.removeClass('leader');
+    }
   }
 }),
 

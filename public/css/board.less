@@ -1,13 +1,41 @@
+@boardHeight: 600px;
+@boardWidth: 760px;
 #board {
-  float: right;
-  width: 800px;
-  .clearBtn {
-    float: left;
-  }
+  margin: 20px 0;
+  min-height: 640px;
+}
+
+#boardControlsContainer {
+  background-color: #333;
+  float: left;
+  margin: 0 20px 0 0;
+  height: 600px;
+  padding: 20px;
+  width: 140px;
+
+  .rounded-corners-all(10px);
+}
+
+#boardControls {
+  background-color: #fff;
+  height: 580px;
+  padding: 20px 0 0;
+}
+
+#boardContainer {
+  background-color: #ccc;
+  float: left;
+  padding: 20px;
+  width: @boardWidth;
+  height: @boardHeight;
+
+  .rounded-corners-all(10px);
 }
 
 #gameBoard {
-  border: 1px solid #000;
-  width: 800px;
-  height: 600px;
+  background-color: #fff;
+  width: @boardWidth;
+  height: @boardHeight;
+
+  .rounded-corners-all(10px);
 }

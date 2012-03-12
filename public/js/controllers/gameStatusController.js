@@ -10,7 +10,7 @@ var GameStatusController = function(o) {
                       'changeArtist');
 
       this.model = o.model;
-      this.view = new GameStatusView({ el: $('.gameInfo'),
+      this.view = new GameStatusView({ el: $('#gameStatus'),
                                        model: this.model,
                                        getPlayerById: this.getPlayerById });
       this.model.bind('change:gameStatus', this.handleGameStatus);
