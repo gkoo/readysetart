@@ -18,6 +18,8 @@ Pictionary = function () {
   // Used primarily for freeDraw
   this.userPaths = {};
 
+  this.userColors = {};
+
   // Array of arrays of PaperJS Points
   // (Array of Paths)
   this.allPaths = [];
@@ -158,6 +160,13 @@ Pictionary = function () {
              'isLeader': isLeader };
   }).bind(this);
 
+  this.getUserColor = function (socketid) {
+    if (this.userColors[socketid]) {
+      return this.userColors[socketid];
+    }
+    return '#000';
+  };
+
   // Listen to Socket.io
   this.listen = function(io) {
     this.io = io.of('/game');
@@ -218,32 +227,39 @@ Pictionary = function () {
       }).bind(this));
 
       socket.on('newPoints', (function (data) {
-        var path;
+        var path, userColor = this.getUserColor(socket.id);
+
         socket.broadcast.emit('newPoints', { 'senderId': socket.id,
-                                             'points': data });
+                                             'points': data,
+                                             'color': userColor });
 
         if (!this.userPaths[socket.id]) {
-          this.userPaths[socket.id] = [];
+          this.userPaths[socket.id] = { 'color': userColor,
+                                        'points': [] };
         }
 
-        path = this.userPaths[socket.id];
-        this.userPaths[socket.id] = path.concat(data);
+        path = this.userPaths[socket.id].points;
+        this.userPaths[socket.id].points = path.concat(data);
       }).bind(this));
 
       // Client has completed drawing a path.
       socket.on('completedPath', (function (o) {
-        var path;
+        var pathObj, path;
         socket.broadcast.emit('completedPath', { 'senderId': socket.id,
                                                  'points': o });
-        path = this.userPaths[socket.id];
+        pathObj = this.userPaths[socket.id];
+        path = pathObj.points;
+
         if (path && path.length) {
           if (o && o.length) {
-            path = path.concat(o);
+            pathObj.points = path.concat(o);
           }
-          this.allPaths.push(path);
+          this.allPaths.push(pathObj);
         }
         else if (o && o.length) {
-          this.allPaths.push(o);
+          this.allPaths.push({ 'senderId': socket.id,
+                               'color': this.getUserColor(socket.id),
+                               'points': o });
         }
         this.userPaths[socket.id] = null;
       }).bind(this));
@@ -262,6 +278,10 @@ Pictionary = function () {
         socket.broadcast.emit('clearBoard');
         this.userPaths = {};
         this.allPaths = [];
+      }).bind(this));
+
+      socket.on('changeColor', (function (brushColor) {
+        this.userColors[socket.id] = brushColor;
       }).bind(this));
 
       socket.on('debug', (function() {

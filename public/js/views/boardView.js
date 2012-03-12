@@ -8,6 +8,7 @@ var BoardView = Backbone.View.extend({
     _.extend(this, Backbone.Events);
     _.bindAll(this,
               'doClear',
+              'changeColor',
               'doDrawSleep',
               'mouseDown',
               'mouseDrag',
@@ -49,14 +50,33 @@ var BoardView = Backbone.View.extend({
   // Hash of other players' paths.
   paths: {},
 
-  createNewPath: function () {
-    var path = new Path(); // create a new path
-    path.strokeColor = '#000';
+  brushColor: '#000',
+
+  colors: {
+    'black': '#000',
+    'brown': '#8B4513',
+    'blue': '#00f',
+    'green': '#0f0',
+    'red': '#f00',
+    'yellow': '#ff0',
+    'white': '#fff'
+  },
+
+  createNewPath: function (opt) {
+    var path = new Path(),
+        color = this.brushColor;
+
+    if (opt && opt.color) {
+      color = opt.color;
+    }
+
+    path.strokeColor = color;
     return path;
   },
 
   events: {
-    'click #clearBoard': 'doClear'
+    'click #clearBoard': 'doClear',
+    'click .color:': 'changeColor'
   },
 
   doClear: function() {
@@ -64,6 +84,22 @@ var BoardView = Backbone.View.extend({
     this.path.fillColor = '#fff';
     view.draw();
     this.trigger('boardView:clear', { 'eventName': 'clearBoard' });
+  },
+
+  changeColor: function (evt) {
+    var target = $(evt.target),
+        colorLabel = target.attr('data-color');
+
+    evt.preventDefault();
+    if (colorLabel && this.colors[colorLabel]) {
+      this.brushColor = this.colors[colorLabel];
+    }
+    else {
+      this.brushColor = '#000';
+    }
+
+    this.trigger('boardView:changeColor', { 'eventName': 'changeColor',
+                                            'data': this.brushColor });
   },
 
   doDrawSleep: function () {
@@ -105,12 +141,6 @@ var BoardView = Backbone.View.extend({
       this.trigger('boardView:completedPath', { 'eventName': 'completedPath',
                                                 'data': lastPoints });
     }
-  },
-
-  handleNewStroke: function(segments) {
-    this.path = new Path(segments);
-    this.path.strokeColor = '#000';
-    view.draw();
   },
 
   setupPaperCanvas: function() {
@@ -213,6 +243,7 @@ var BoardView = Backbone.View.extend({
     var senderId, points;
 
     // default draw to true
+    // draw says whether we should redraw the path.
     draw = typeof draw === 'undefined' ? 'true' : draw;
 
     if (!data) { return; }
@@ -222,17 +253,22 @@ var BoardView = Backbone.View.extend({
     if (!senderId || !points || !points.length) { return; }
 
     if (!this.paths[senderId]) {
-      this.paths[senderId] = this.createNewPath();
+      this.paths[senderId] = this.createNewPath(data);
     }
     this.paths[senderId].addSegments(points);
+
+    // don't remember why we wouldn't want to draw this.
+    // i think it had to do with a few remaining points
+    // captured after the mouse button is released?
     if (draw) { view.draw(); }
   },
 
   handleInitPaths: function (paths) {
-    var i, len, path;
+    var i, len, pathObj, path;
     for (i = 0, len = paths.length; i<len; ++i) {
-      path = this.createNewPath();
-      path.addSegments(paths[i]);
+      pathObj = paths[i];
+      path = this.createNewPath(pathObj);
+      path.addSegments(pathObj.points);
       path.simplify(this.simplifyLevel);
     }
     view.draw();

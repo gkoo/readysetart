@@ -142,10 +142,10 @@ GameController = function() {
       this.boardView.bind('boardView:sendPoints', this.emitGameSocketEvent);
       this.boardView.bind('boardView:completedPath', this.emitGameSocketEvent);
       this.boardView.bind('boardView:clear', this.emitGameSocketEvent);
+      this.boardView.bind('boardView:changeColor', this.emitGameSocketEvent);
       this.bind('newPoints', this.boardView.handleNewPoints);
       this.bind('completedPath', this.boardView.handleCompletedPath);
       this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
-      this.bind('newStrokeSub', this.boardView.handleNewStroke);
       this.bind('clearBoard', this.boardView.doClear);
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
       this.bind('nextUp', this.chatController.notifyNextArtist);
@@ -231,9 +231,9 @@ GameController = function() {
       }
     },
 
-    debug: function() {
-      alert(this.chatController.view.atBottomOfChat());
-      //this.gameSocket.emit('debug');
+    debug: function () {
+      //alert(this.chatController.view.atBottomOfChat());
+      this.gameSocket.emit('debug');
     }
   };
 
