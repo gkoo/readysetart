@@ -7,7 +7,8 @@ var GameStatusController = function(o) {
                       'clearTimer',
                       'restartTimer',
                       'handleGameStatus',
-                      'changeArtist');
+                      'changeArtist',
+                      'reset');
 
       this.model = o.model;
       this.view = new GameStatusView({ el: $('#gameStatus'),
@@ -74,7 +75,8 @@ var GameStatusController = function(o) {
         this.clearTimer();
       }
       else if (gameStatus === GameStatusEnum.FINISHED) {
-        this.trigger('clearBoard');
+        this.clearTimer();
+        this.trigger('gameFinished');
       }
     },
 
@@ -86,7 +88,15 @@ var GameStatusController = function(o) {
       else {
         this.trigger('artistChange');
       }
-      this.restartTimer();
+      if (artistId !== -1) {
+        this.restartTimer();
+      }
+    },
+
+    reset: function () {
+      this.clearTimer();
+      this.changeArtist(null, -1);
+      this.setGameStatus({ 'gameStatus': GameStatusEnum.NOT_STARTED });
     }
   };
   return controller.initialize(o);

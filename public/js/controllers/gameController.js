@@ -154,7 +154,8 @@ GameController = function() {
       // Game Status Events
       this.gameStatusController.bind('turnOver', this.boardView.disable);
       this.gameStatusController.bind('turnOver', this.boardView.reset);
-      this.gameStatusController.bind('clearBoard', this.boardView.doClear);
+      this.gameStatusController.bind('gameFinished', this.boardView.handleGameFinished);
+      this.gameStatusController.bind('gameFinished', this.chatController.handleGameFinished);
       this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
       this.gameStatusController.bind('artistChange', this.boardView.reset);
 
@@ -171,6 +172,8 @@ GameController = function() {
       this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
       this.gameControls.bind('gameControls:freeDraw', this.boardView.handleFreeDraw);
       this.gameControls.bind('gameControls:freeDraw', this.emitGameSocketEvent);
+      this.gameControls.bind('gameControls:stopGame', this.emitGameSocketEvent);
+      this.gameControls.bind('gameControls:stopGame', this.gameStatusController.reset);
     },
 
     handleGameModel: function(data) {

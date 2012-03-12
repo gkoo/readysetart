@@ -1,20 +1,15 @@
 // TODO: show game status messages in chat
 var GameStatusView = Backbone.View.extend({
   initialize: function(o) {
-    try {
-      _.bindAll(this, 'render',
-                      'renderTimeLeft',
-                      'renderStatus',
-                      'renderCurrArtist');
-      this.getPlayerById = o.getPlayerById;
-      this.statusEl      = this.$('.status');
-      this.artistEl      = this.$('.artist');
-      this.timeLeftEl    = this.$('.timeLeft');
-      this.render();
-    }
-    catch(e) {
-      console.log(e);
-    }
+    _.bindAll(this, 'render',
+                    'renderTimeLeft',
+                    'renderStatus',
+                    'renderCurrArtist');
+    this.getPlayerById = o.getPlayerById;
+    this.$statusEl      = this.$('.status .value');
+    this.$artistEl      = this.$('.artist .value');
+    this.$timeLeftEl    = this.$('.timeLeft .value');
+    this.render();
   },
 
   render: function() {
@@ -35,31 +30,32 @@ var GameStatusView = Backbone.View.extend({
   },
 
   renderTimeLeft: function() {
-    this.timeLeftEl.text(this.model.get('timeLeft') + ' seconds');
+    this.$timeLeftEl.text(this.model.get('timeLeft'));
   },
 
   renderStatus: function(model, status) {
     if (status === GameStatusEnum.IN_PROGRESS) {
-      this.statusEl.text('Game has started.');
+      this.$statusEl.text('Started');
     }
     else if (status === GameStatusEnum.FINISHED) {
-      this.statusEl.text('Game has ended.');
+      this.$statusEl.text('Ended.');
     }
   },
 
-  renderCurrArtist: function() {
-    var currArtistId = this.model.get('currArtist'),
-        artistPlayer;
+  renderCurrArtist: function(model, artistId) {
+    var artistPlayer;
+    if (artistId === -1) {
+      this.$artistEl.text('No one');
+      return;
+    }
 
-    if (currArtistId) {
-      // TODO: Need to add this method back in.
-      artistPlayer = this.getPlayerById(currArtistId);
-      if (artistPlayer) {
-        this.$('.artist').text(artistPlayer.get('name') + ' is currently drawing');
-      }
-      else {
-        console.log('[err] Couldn\'t find player matching currArtist Id.');
-      }
+    artistPlayer = this.getPlayerById(artistId);
+    // TODO: Need to add this method back in.
+    if (artistPlayer) {
+      this.$artistEl.text(artistPlayer.get('name'));
+    }
+    else {
+      console.log('[err] Couldn\'t find player matching currArtist Id.');
     }
   }
 });

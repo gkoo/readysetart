@@ -25,11 +25,12 @@ var BoardView = Backbone.View.extend({
               'sendNewPoints',
               'handleNewPoints',
               'handleCompletedPath',
-              'handleInitPaths');
+              'handleInitPaths',
+              'handleGameFinished');
 
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
-    this.wordToDrawEl = this.$('.wordToDraw');
+    this.$wordToDrawEl = this.$('.wordToDraw');
     this.$yourColorEl = this.$('#yourColor');
     this.bind('boardView:drawEnabled', this.handleDrawEnable);
     this.handleFreeDraw(o); // check if we are in freeDraw mode
@@ -60,7 +61,7 @@ var BoardView = Backbone.View.extend({
     'blue': '#00f',
     'green': '#0f0',
     'red': '#f00',
-    'yellow': '#eedc82',
+    'yellow': '#ee0',
     'white': '#fff'
   },
 
@@ -78,7 +79,7 @@ var BoardView = Backbone.View.extend({
 
   events: {
     'click #clearBoard': 'doClearAndBroadcast',
-    'click .color:': 'changeColor'
+    'click a.color:': 'changeColor'
   },
 
   doClearAndBroadcast: function () {
@@ -165,13 +166,18 @@ var BoardView = Backbone.View.extend({
 
   updateWordToDraw: function(word) {
     this.doClear();
-    this.wordToDrawEl.find('.word').text(word);
-    this.wordToDrawEl.show();
+    if (word) {
+      this.$wordToDrawEl.find('.word').text(word);
+      this.$wordToDrawEl.show();
+    }
+    else {
+      this.$wordToDrawEl.hide();
+    }
   },
 
   clearWordToDraw: function() {
-    this.wordToDrawEl.find('.word').text('');
-    this.wordToDrawEl.hide();
+    this.$wordToDrawEl.find('.word').text('');
+    this.$wordToDrawEl.hide();
   },
 
   reset: function() {
@@ -281,6 +287,10 @@ var BoardView = Backbone.View.extend({
       path.simplify(this.simplifyLevel);
     }
     view.draw();
+  },
+
+  handleGameFinished: function () {
+    this.updateWordToDraw();
   },
 
   sendNewPoints: function () {

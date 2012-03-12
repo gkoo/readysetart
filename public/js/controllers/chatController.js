@@ -13,6 +13,7 @@ var ChatController = function(chatSocket) {
                       'notifyNextArtist',
                       'handleNameChange',
                       'handleNewLeader',
+                      'handleGameFinished',
                       'handlePlayerDisconnect');
       this.collection = new MessageCollection({ bufferLength: this.BUFFER_LENGTH });
 
@@ -84,6 +85,10 @@ var ChatController = function(chatSocket) {
 
     handleNameChange: function(o) {
       this.collection.addSysMessage(o.oldName + ' changed name to ' + o.newName + '.', true);
+    },
+
+    handleGameFinished: function () {
+      this.view.renderNewMessage('Game over!');
     },
 
     notifyNextArtist: function (data) {

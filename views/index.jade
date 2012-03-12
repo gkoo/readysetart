@@ -15,10 +15,12 @@ body
       span.value Not started
     p.artist
       | Artist:
-      span.value No one.
+      span.value No one
     p.timeLeft
       | Time left:
-      span.value 0 seconds
+      span.value 0
+      |  
+      span seconds
   #main
     != partial('controls')
     != partial('board')

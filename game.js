@@ -25,7 +25,8 @@ var _u       = require('underscore'),
 GameModel = Backbone.Model.extend({
   initialize: function (opt) {
     this.set({ 'players':    new playerLib.PlayersCollection(),
-               'gameStatus': new gameStatusLib.GameStatusModel({ 'turnDuration': opt.turn_duration }),
+               'gameStatus': new gameStatusLib.GameStatusModel({ 'turnDuration': opt.turn_duration,
+                                                                 'warmupDuration': opt.turn_break_duration }),
              });
   }
 }),
@@ -40,9 +41,6 @@ GameController = module.exports.GameController = function (opt) {
 
   this.setChat = function (chat) {
     this.chatController = chat;
-  };
-
-  this.endPlayerTurn = function () {
   };
 
   this.sync = function (data, socket) {

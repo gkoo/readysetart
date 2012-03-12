@@ -8,6 +8,7 @@ var game     = require('./game'),
 Pictionary = function () {
   this.wordBase = wordBase;
   this.turn_duration = TURN_DURATION;
+  this.turn_break_duration = TURN_BREAK_DURATION;
 
   // For each incoming path, store in userPaths keyed by socket.id
   // Once mouseup event comes in, move path from userPaths to allPaths
@@ -77,16 +78,15 @@ Pictionary = function () {
   // allow the players to prepare.
   this.startNextWarmUpAndTurn = (function () {
     var players   = this.model.get('players'),
-        nextArtist, newStatus;
+        nextArtist;
 
     if (players.hasNextArtist()) {
       nextArtist = players.getNextArtist();
-      newStatus = { 'currArtist': nextArtist };
-      this.io.emit('nextUp', newStatus); // send the warm-up message
-      setTimeout(this.startNextTurn, TURN_BREAK_DURATION);
+      this.io.emit('nextUp', { 'currArtist': nextArtist }); // send the warm-up message
+      setTimeout(this.startNextTurn, this.turn_break_duration);
     }
     else {
-      // TODO: no more artists, signal end of round
+      // No more artists, signal end of round.
       this.handleGameFinish();
     }
   }).bind(this);
@@ -104,8 +104,12 @@ Pictionary = function () {
 
   this.handleGameFinish = (function (o) {
     var gameStatusModel = this.model.get('gameStatus'),
-        newStatus = { 'gameStatus': GameStatusEnum.FINISHED };
+        newStatus = { 'gameStatus': GameStatusEnum.FINISHED,
+                      'currArtist': -1 };
     gameStatusModel.set(newStatus);
+    if (this.turnTimeout) {
+      clearTimeout(this.turnTimeout);
+    }
     this.io.emit('gameStatus', newStatus);
   }).bind(this);
 
@@ -132,21 +136,31 @@ Pictionary = function () {
     // Remove player from players array
     players.remove(player);
 
+    if (!players.length) {
+      // No one is left in the room. =(
+      if (this.turnTimeout) {
+        clearTimeout(this.turnTimeout);
+      }
+      this.handleGameFinish();
+      return;
+    }
+
     // If player was leader, reassign leader
     if (wasLeader && players.length) {
       newLeader = players.at(0);
       newLeader.set({ 'isLeader': true });
     }
 
-    // If player was currArtist, begin new turn
-    // TODO: Need to make sure there's not a race condition
-    // where we start a new turn here, and then
-    // the timer runs out and we try to start a new turn again.
-    if (currArtist === id) {
-      this.startNextTurn();
-    }
-
     socket.broadcast.emit('playerDisconnect', { 'id': id, 'newLeaderId': newLeader ? newLeader.id : 0 });
+
+    // If player was currArtist, begin new turn
+    if (currArtist === id) {
+      // Prevent race condition by clearing original timeout.
+      if (this.turnTimeout) {
+        clearTimeout(this.turnTimeout);
+      }
+      this.startNextWarmUpAndTurn();
+    }
   }).bind(this);
 
   // Create the data to pass to a newly connected player
@@ -214,9 +228,6 @@ Pictionary = function () {
           }
         });
       });
-
-      // TODO: need to keep a timer on the server side
-      socket.on('turnOver', this.startNextTurn);
 
       socket.on('disconnect', (function () {
         this.handleDisconnect(socket);
@@ -286,7 +297,7 @@ Pictionary = function () {
 
       socket.on('debug', (function() {
         console.log(this.allPaths);
-        console.log(this.userPaths);
+        //console.log(this.userPaths);
       }).bind(this));
     }).bind(this));
 
@@ -297,7 +308,8 @@ Pictionary = function () {
 };
 
 // Inherit from Game framework
-Pictionary.prototype = new game.GameController({ turn_duration: TURN_DURATION });
+Pictionary.prototype = new game.GameController({ turn_duration: TURN_DURATION,
+                                                 turn_break_duration: TURN_BREAK_DURATION });
 
 
 module.exports = new Pictionary();

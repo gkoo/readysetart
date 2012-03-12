@@ -3,13 +3,15 @@ var GameControlsView = Backbone.View.extend({
     _.extend(this, Backbone.Events);
     _.bindAll(this, 'doEndTurn',
                     'doStartGame',
+                    'doStopGame',
                     'toggleFreeDraw',
                     'enableFreeDrawBtn',
                     'disableFreeDrawBtn',
                     'updateControls',
                     'showControls');
-    this.startBtn = this.$('.startGameBtn').removeAttr('disabled');
-    this.endBtn = this.$('.endTurnBtn').attr('disabled', 'disabled');
+    this.$startBtn = this.$('.startGameBtn').removeAttr('disabled');
+    this.$stopBtn = this.$('.stopGameBtn');
+    //this.$endBtn = this.$('.endTurnBtn').attr('disabled', 'disabled');
     this.freeDrawBtn = this.$('#freedraw').removeAttr('disabled'); // TODO: why does Firefox persist this attr?
     if (o.freeDraw) {
       this.freeDrawBtn.attr('checked', 'checked');
@@ -24,6 +26,7 @@ var GameControlsView = Backbone.View.extend({
     'click .debug': 'debug',
     'click .endTurnBtn': 'doEndTurn',
     'click .startGameBtn': 'doStartGame',
+    'click .stopGameBtn': 'doStopGame',
     'change #freedraw': 'toggleFreeDraw'
   },
 
@@ -45,9 +48,22 @@ var GameControlsView = Backbone.View.extend({
                                               'data': data });
     this.updateControls(GameStatusEnum.IN_PROGRESS);
     this.disableFreeDrawBtn();
+    // make sure free draw is turned off
     this.toggleFreeDraw();
   },
 
+  doStopGame: function() {
+    var data = { 'gameStatus': GameStatusEnum.FINISHED };
+    this.trigger('gameControls:stopGame', { 'eventName': 'gameStatus',
+                                            'data': data });
+    this.updateControls(GameStatusEnum.FINISHED);
+    this.enableFreeDrawBtn();
+    // make sure free draw is turned off
+    this.toggleFreeDraw();
+  },
+
+  // Determines state of free draw based on checkbox and
+  // emits it to the other clients.
   toggleFreeDraw: function() {
     var o = { 'eventName': 'toggleFreeDraw' };
     if (this.$('#freedraw').attr('checked')) {
@@ -70,12 +86,15 @@ var GameControlsView = Backbone.View.extend({
 
   updateControls: function(o) {
     if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
-      this.startBtn.attr('disabled', 'disabled');
-      this.endBtn.removeAttr('disabled');
+      this.$startBtn.attr('disabled', 'disabled');
+      console.log(this.$stopBtn);
+      this.$stopBtn.removeAttr('disabled');
+      //this.endBtn.removeAttr('disabled');
     }
     else if (o.gameStatus === GameStatusEnum.FINISHED) {
-      this.startBtn.removeAttr('disabled');
-      this.endBtn.attr('disabled', 'disabled');
+      this.$startBtn.removeAttr('disabled');
+      this.$stopBtn.attr('disabled', 'disabled');
+      //this.endBtn.attr('disabled', 'disabled');
       this.freeDrawBtn.removeAttr('disabled');
     }
   },

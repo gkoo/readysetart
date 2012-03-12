@@ -2,7 +2,8 @@
   label
     input(type="checkbox", id="freedraw", name="freedraw")
     | Toggle free draw
-  input(type="button", value="End Turn", disabled="disabled", class="endTurnBtn")
-  input(type="button", value="Start Game", class="startGameBtn")
+  //input(type="button", value="End Turn", disabled="disabled", class="endTurnBtn")
+  input.startGameBtn(type="button", value="Start Game")
+  input.stopGameBtn(type="button", value="Stop Game", disabled="disabled")
   input.clearBtn(type="button", value="Clear Board")
   input.debug(type="button", value="Debug")
