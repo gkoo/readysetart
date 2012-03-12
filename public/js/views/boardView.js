@@ -7,6 +7,7 @@ var BoardView = Backbone.View.extend({
 
     _.extend(this, Backbone.Events);
     _.bindAll(this,
+              'doClearAndBroadcast',
               'doClear',
               'changeColor',
               'doDrawSleep',
@@ -29,6 +30,7 @@ var BoardView = Backbone.View.extend({
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
     this.wordToDrawEl = this.$('.wordToDraw');
+    this.$yourColorEl = this.$('#yourColor');
     this.bind('boardView:drawEnabled', this.handleDrawEnable);
     this.handleFreeDraw(o); // check if we are in freeDraw mode
   },
@@ -58,7 +60,7 @@ var BoardView = Backbone.View.extend({
     'blue': '#00f',
     'green': '#0f0',
     'red': '#f00',
-    'yellow': '#ff0',
+    'yellow': '#eedc82',
     'white': '#fff'
   },
 
@@ -75,15 +77,19 @@ var BoardView = Backbone.View.extend({
   },
 
   events: {
-    'click #clearBoard': 'doClear',
+    'click #clearBoard': 'doClearAndBroadcast',
     'click .color:': 'changeColor'
+  },
+
+  doClearAndBroadcast: function () {
+    this.doClear();
+    this.trigger('boardView:clear', { 'eventName': 'clearBoard' });
   },
 
   doClear: function() {
     this.path = new Path.Rectangle(new Point(0, 0), view.viewSize);
     this.path.fillColor = '#fff';
     view.draw();
-    this.trigger('boardView:clear', { 'eventName': 'clearBoard' });
   },
 
   changeColor: function (evt) {
@@ -97,6 +103,9 @@ var BoardView = Backbone.View.extend({
     else {
       this.brushColor = '#000';
     }
+
+    this.$yourColorEl.children('.color').removeClass()
+                                        .addClass('color ' + colorLabel);
 
     this.trigger('boardView:changeColor', { 'eventName': 'changeColor',
                                             'data': this.brushColor });

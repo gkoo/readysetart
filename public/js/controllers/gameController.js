@@ -165,7 +165,7 @@ GameController = function() {
 
       // Game Controls Events
       this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
-      this.gameControls.bind('gameControls:clearBoard', this.boardView.doClear);
+      this.gameControls.bind('gameControls:clearBoard', this.boardView.doClearAndBroadcast);
       this.gameControls.bind('gameControls:debug', this.debug);
       this.gameControls.bind('gameControls:gameStatus', this.emitGameSocketEvent);
       this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
