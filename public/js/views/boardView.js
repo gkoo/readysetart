@@ -80,6 +80,7 @@ var BoardView = Backbone.View.extend({
     }
 
     path.strokeColor = color;
+    path.strokeWidth = 5;
     return path;
   },
 

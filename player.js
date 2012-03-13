@@ -26,7 +26,22 @@ PlayersCollection = playerLib.PlayersCollection.extend({
       console.log('[err] getNextArtist: no artists left');
       return 0;
     }
-    return this.artistOrder[++this.pos];
+
+    while (true) {
+      nextArtistId = this.artistOrder[++this.pos];
+      if (this.get(nextArtistId)) {
+        // found artist
+        return nextArtistId;
+      }
+      else {
+        if (!this.hasNextArtist()) {
+          // no more artists
+          return 0;
+        }
+        // didn't find artist, advancing to next one.
+        nextArtistId = this.artistOrder[++this.pos];
+      }
+    }
   },
 
   decideArtistOrder: function() {
