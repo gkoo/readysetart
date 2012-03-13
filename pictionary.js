@@ -294,7 +294,9 @@ Pictionary = function () {
           socket.broadcast.emit('toggleFreeDraw', data);
         }
         gameStatusModel = this.model.get('gameStatus');
-        gameStatusModel.set(data);
+        if (gameStatusModel.get('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
+          gameStatusModel.set(data);
+        }
       }).bind(this));
 
       socket.on('clearBoard', (function() {

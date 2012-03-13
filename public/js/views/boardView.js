@@ -216,7 +216,7 @@ var BoardView = Backbone.View.extend({
         freeDraw = o.data.freeDraw;
         found = true;
       }
-      else if (o.freeDraw) {
+      else if (typeof o.freeDraw !== 'undefined') {
         freeDraw = o.freeDraw;
         found = true;
       }
@@ -296,6 +296,7 @@ var BoardView = Backbone.View.extend({
 
   handleGameFinished: function () {
     this.updateWordToDraw();
+    this.disable();
   },
 
   doNextUpInterval: function() {
@@ -315,6 +316,7 @@ var BoardView = Backbone.View.extend({
     var el = this.$nextUpEl,
         nextArtist = this.getPlayerById(data.currArtist);
 
+    this.disable();
     el.find('.playerName').text(nextArtist.get('name'));
     // TODO: change to use value from model.
     el.find('.seconds').text('5');
