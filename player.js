@@ -16,6 +16,8 @@ PlayersCollection = playerLib.PlayersCollection.extend({
   },
 
   getNextArtist: function() {
+    var nextArtistId;
+
     if (!this.artistOrder || !this.artistOrder.length) {
       console.log('[err] something is wrong, no artistOrder.');
       return 0;

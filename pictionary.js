@@ -271,7 +271,7 @@ Pictionary = function () {
         socket.broadcast.emit('completedPath', { 'senderId': socket.id,
                                                  'points': o });
         pathObj = this.userPaths[socket.id];
-        path = pathObj.points;
+        path = pathObj ? pathObj.points : null;
 
         if (path && path.length) {
           if (o && o.length) {
