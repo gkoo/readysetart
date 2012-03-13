@@ -1,6 +1,6 @@
 var game     = require('./game'),
     wordBase = require('./wordbase/wordbase.js'),
-    TURN_DURATION = 30000,
+    TURN_DURATION = 120000,
     TURN_BREAK_DURATION = 5000,
     gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
     GameStatusEnum = gameStatusLib.GameStatusEnum,

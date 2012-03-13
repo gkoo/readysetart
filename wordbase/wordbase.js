@@ -7,8 +7,8 @@ var fs = require('fs'),
 
 module.exports = (function() {
   var wordList, usedWords, wordbase,
-      //filename = './wordbase/words.txt';
-      filename = './wordbase/fruit.txt';
+      filename = './wordbase/words.txt';
+      //filename = './wordbase/fruit.txt';
 
   wordbase = {
     initialize: function() {
