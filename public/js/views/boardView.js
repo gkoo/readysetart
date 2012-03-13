@@ -26,12 +26,16 @@ var BoardView = Backbone.View.extend({
               'handleNewPoints',
               'handleCompletedPath',
               'handleInitPaths',
+              'doNextUpInterval',
+              'handleNextUp',
               'handleGameFinished');
 
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
     this.$wordToDrawEl = this.$('.wordToDraw');
     this.$yourColorEl = this.$('#yourColor');
+    this.$nextUpEl = this.$('#nextUpMessage');
+    this.$boardControls = this.$('#boardControls');
     this.bind('boardView:drawEnabled', this.handleDrawEnable);
     this.handleFreeDraw(o); // check if we are in freeDraw mode
   },
@@ -44,6 +48,8 @@ var BoardView = Backbone.View.extend({
 
   // Placeholder for timeout object to buffer drawing.
   drawSleepTimeout: undefined,
+
+  nextUpInterval: undefined,
 
   // Placeholder for interval object to buffer sending points.
   sendPointsInterval: undefined,
@@ -188,11 +194,13 @@ var BoardView = Backbone.View.extend({
 
   enable: function() {
     this.enabled = true;
+    this.$boardControls.show();
     this.trigger('boardView:drawEnabled', true);
   },
 
   disable: function() {
     this.enabled = false;
+    this.$boardControls.hide();
     this.trigger('boardView:drawEnabled', false);
   },
 
@@ -213,22 +221,19 @@ var BoardView = Backbone.View.extend({
         found = true;
       }
     }
-    if (!found) {
-      return;
-    }
-    this.enabled = freeDraw;
-    this.trigger('boardView:drawEnabled', freeDraw);
+    if (!found) { return; }
+
+    if (freeDraw) { this.enable(); }
+    else { this.disable(); }
   },
 
   handleDrawEnable: function(on) {
     if (on) {
       // Start interval to send path segments
-      console.log('intiializing interval');
       this.sendPointsInterval = window.setInterval(this.sendNewPoints, 100);
     }
     else {
       // Clear interval
-      console.log('clearing interval');
       window.clearInterval(this.sendPointsInterval);
     }
   },
@@ -291,6 +296,30 @@ var BoardView = Backbone.View.extend({
 
   handleGameFinished: function () {
     this.updateWordToDraw();
+  },
+
+  doNextUpInterval: function() {
+    var secondsEl = this.$nextUpEl.find('.seconds'),
+        secondsLeft = parseInt(secondsEl.text(), 10);
+
+    if (--secondsLeft === 0) {
+      clearInterval(this.nextUpInterval);
+      this.$nextUpEl.hide();
+    }
+    else {
+      secondsEl.text(secondsLeft);
+    }
+  },
+
+  handleNextUp: function(data) {
+    var el = this.$nextUpEl,
+        nextArtist = this.getPlayerById(data.currArtist);
+
+    el.find('.playerName').text(nextArtist.get('name'));
+    // TODO: change to use value from model.
+    el.find('.seconds').text('5');
+    el.show();
+    this.nextUpInterval = setInterval(this.doNextUpInterval, 1000);
   },
 
   sendNewPoints: function () {

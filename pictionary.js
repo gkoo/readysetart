@@ -65,12 +65,17 @@ Pictionary = function () {
   // Start the actual turn for the artist.
   this.startNextTurn = (function () {
     var model = this.model;
+        gameStatusModel = model.get('gameStatus'),
         currArtist = model.get('players').getCurrentArtist(),
-        newStatus = { 'currArtist': currArtist };
+        date = new Date(),
+        turnStart = date.getTime() + date.getTimezoneOffset(),
+        newStatus = { 'currArtist': currArtist,
+                      'turnStart': turnStart };
 
-    model.get('gameStatus').set(newStatus);
+    gameStatusModel.set(newStatus);
     this.io.emit('gameStatus', newStatus);
     this.sendNextWord();
+    //this.turnInterval = setInterval(this.doTurnInterval, 1000);
     this.turnTimeout = setTimeout(this.startNextWarmUpAndTurn, this.turn_duration);
   }).bind(this);
 
@@ -111,11 +116,13 @@ Pictionary = function () {
       clearTimeout(this.turnTimeout);
     }
     this.io.emit('gameStatus', newStatus);
+    this.clearCachedPaths();
   }).bind(this);
 
   // Start or finish game.
   this.handleGameStatus = (function (o) {
     if (typeof o.gameStatus !== 'undefined') {
+      this.model.get('gameStatus').set({ 'gameStatus': o.gameStatus });
       if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
         this.handleGameStart(o);
       }
@@ -154,7 +161,7 @@ Pictionary = function () {
     socket.broadcast.emit('playerDisconnect', { 'id': id, 'newLeaderId': newLeader ? newLeader.id : 0 });
 
     // If player was currArtist, begin new turn
-    if (currArtist === id) {
+    if (currArtist === id && this.model.get('gameStatus').get('gameStatus') === GameStatusEnum.IN_PROGRESS) {
       // Prevent race condition by clearing original timeout.
       if (this.turnTimeout) {
         clearTimeout(this.turnTimeout);
@@ -179,6 +186,11 @@ Pictionary = function () {
       return this.userColors[socketid];
     }
     return '#000';
+  };
+
+  this.clearCachedPaths = function () {
+    this.userPaths = {};
+    this.allPaths = [];
   };
 
   // Listen to Socket.io
@@ -287,8 +299,7 @@ Pictionary = function () {
 
       socket.on('clearBoard', (function() {
         socket.broadcast.emit('clearBoard');
-        this.userPaths = {};
-        this.allPaths = [];
+        this.clearCachedPaths();
       }).bind(this));
 
       socket.on('changeColor', (function (brushColor) {

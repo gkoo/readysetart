@@ -87,7 +87,6 @@ var GameControlsView = Backbone.View.extend({
   updateControls: function(o) {
     if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
       this.$startBtn.attr('disabled', 'disabled');
-      console.log(this.$stopBtn);
       this.$stopBtn.removeAttr('disabled');
       //this.endBtn.removeAttr('disabled');
     }

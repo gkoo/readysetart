@@ -150,6 +150,7 @@ GameController = function() {
       this.bind('wordToDraw', this.boardView.updateWordToDraw);
       this.bind('nextUp', this.chatController.notifyNextArtist);
       this.bind('nextUp', this.gameStatusController.clearTimer);
+      this.bind('nextUp', this.boardView.handleNextUp);
 
       // Game Status Events
       this.gameStatusController.bind('turnOver', this.boardView.disable);

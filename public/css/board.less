@@ -18,6 +18,7 @@
 
 #boardControls {
   background-color: #fff;
+  display: none;
   height: 580px;
   padding: 20px 20px 0;
 
@@ -73,10 +74,26 @@
   background-color: #ccc;
   float: left;
   padding: 20px;
+  position: relative;
   width: @boardWidth;
   height: @boardHeight;
 
   .rounded-corners-all(10px);
+}
+
+#nextUpMessage {
+  display: none;
+  margin: 175px auto 0;
+  text-align: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: @boardWidth;
+  height: @boardHeight;
+
+  .seconds {
+    font-size: 108px;
+  }
 }
 
 #gameBoard {

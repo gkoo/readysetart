@@ -6,6 +6,7 @@ var GameStatusController = function(o) {
                       'doTimerTick',
                       'clearTimer',
                       'restartTimer',
+                      'startPartialTimer',
                       'handleGameStatus',
                       'changeArtist',
                       'reset');
@@ -19,6 +20,10 @@ var GameStatusController = function(o) {
       this.model.bind('change:currArtist', this.changeArtist);
       this.model.bind('change:currArtist', this.view.renderCurrArtist);
       this.model.bind('change:timeLeft',   this.view.renderTimeLeft);
+
+      if (this.model.get('turnStart')) {
+        this.startPartialTimer();
+      }
       return this;
     },
 
@@ -50,9 +55,9 @@ var GameStatusController = function(o) {
       this.model.set({ 'timeLeft' : 0 });
     },
 
-    restartTimer: function() {
+    restartTimer: function(duration) {
       var time, turnEnd, timeLeft,
-          turnDuration = this.model.get('turnDuration');
+          turnDuration = duration ? duration : this.model.get('turnDuration');
 
       if (!turnDuration) {
         console.log('[err] No turn duration specified.');
@@ -66,6 +71,22 @@ var GameStatusController = function(o) {
       timeLeft = turnDuration/1000; // in seconds
 
       this.model.set({ 'timeLeft' : Math.floor(timeLeft) });
+    },
+
+    // Start timer for a turn that was already in progress.
+    // (Used for when a player connects to the game mid-turn.)
+    startPartialTimer: function () {
+      var turnStart = this.model.get('turnStart'),
+          date, adjustedDate, timePassed, timeLeft;
+      if (!turnStart) {
+        return;
+      }
+
+      date = new Date();
+      adjustedDate = date.getTime() + date.getTimezoneOffset();
+      timePassed = adjustedDate - turnStart; // how much time has elapsed in the turn already.
+      timeLeft = this.model.get('turnDuration') - timePassed;
+      this.restartTimer(timeLeft);
     },
 
     handleGameStatus: function(model, status) {

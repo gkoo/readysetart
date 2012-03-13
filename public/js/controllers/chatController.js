@@ -93,8 +93,6 @@ var ChatController = function(chatSocket) {
 
     notifyNextArtist: function (data) {
       var nextArtist = this.getPlayerById(data.currArtist);
-      console.log('nextArtist');
-      console.log(data.currArtist);
       this.collection.addSysMessage('Next up: ' + nextArtist.get('name'))
     }
   };
