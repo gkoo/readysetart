@@ -110,7 +110,8 @@ Pictionary = function () {
   this.handleGameFinish = (function (o) {
     var gameStatusModel = this.model.get('gameStatus'),
         newStatus = { 'gameStatus': GameStatusEnum.FINISHED,
-                      'currArtist': -1 };
+                      'currArtist': -1,
+                      'turnStart': 0 };
     gameStatusModel.set(newStatus);
     if (this.turnTimeout) {
       clearTimeout(this.turnTimeout);
