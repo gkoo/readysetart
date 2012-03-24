@@ -1,6 +1,6 @@
 // TODO: clear the board when someone makes a correct guess
 
-var BoardView = Backbone.View.extend({
+Pictionary.BoardView = Backbone.View.extend({
   initialize: function(o) {
     paper.install(window); // Injects the paper scope into the window scope. Maybe should revisit this.
     paper.setup(document.getElementById('gameBoard'));

@@ -1,4 +1,4 @@
-var GameControlsView = Backbone.View.extend({
+Pictionary.GameControlsView = Backbone.View.extend({
   initialize: function(o) {
     _.extend(this, Backbone.Events);
     _.bindAll(this, 'doEndTurn',

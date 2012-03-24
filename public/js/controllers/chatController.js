@@ -1,4 +1,4 @@
-var ChatController = function(chatSocket) {
+Pictionary.ChatController = function(chatSocket) {
   var controller = {
     BUFFER_LENGTH: 10, // what does this do again?
 
@@ -15,9 +15,10 @@ var ChatController = function(chatSocket) {
                       'handleNewLeader',
                       'handleGameFinished',
                       'handlePlayerDisconnect');
-      this.collection = new MessageCollection({ bufferLength: this.BUFFER_LENGTH });
 
-      this.view  = new ChatView({ el: $('#chat'),
+      this.collection = new Pictionary.MessageCollection({ bufferLength: this.BUFFER_LENGTH });
+
+      this.view  = new Pictionary.ChatView({ el: $('#chat'),
                                   collection: this.collection });
 
       setInterval(function() {

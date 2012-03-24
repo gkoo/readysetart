@@ -1,4 +1,4 @@
-var PlayerView = Backbone.View.extend({
+Pictionary.PlayerView = Backbone.View.extend({
   tagName: 'li',
 
   initialize: function(o) {
@@ -36,9 +36,9 @@ var PlayerView = Backbone.View.extend({
       this.$el.removeClass('leader');
     }
   }
-}),
+});
 
-PlayersView = Backbone.View.extend({
+Pictionary.PlayersView = Backbone.View.extend({
   initialize: function(o) {
     _.bindAll(this,
               'createNewPlayerView',
@@ -57,7 +57,7 @@ PlayersView = Backbone.View.extend({
   },
 
   createNewPlayerView: function(model) {
-    return new PlayerView({ model: model,
+    return new Pictionary.PlayerView({ model: model,
                             getCurrPlayer: this.getCurrPlayer });
   },
 

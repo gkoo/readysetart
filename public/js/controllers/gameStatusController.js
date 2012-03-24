@@ -1,4 +1,4 @@
-var GameStatusController = function(o) {
+Pictionary.GameStatusController = function(o) {
   var controller = {
     initialize: function(o) {
       _.extend(this, Backbone.Events, o.playerFns);
@@ -12,7 +12,7 @@ var GameStatusController = function(o) {
                       'reset');
 
       this.model = o.model;
-      this.view = new GameStatusView({ el: $('#gameStatus'),
+      this.view = new Pictionary.GameStatusView({ el: $('#gameStatus'),
                                        model: this.model,
                                        getPlayerById: this.getPlayerById });
       this.model.bind('change:gameStatus', this.handleGameStatus);

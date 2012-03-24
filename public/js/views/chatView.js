@@ -1,4 +1,4 @@
-var ChatView = Backbone.View.extend({
+Pictionary.ChatView = Backbone.View.extend({
   initialize: function(o) {
     _.extend(this, Backbone.Events);
     _.bindAll(this,

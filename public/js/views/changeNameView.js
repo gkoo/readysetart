@@ -1,4 +1,4 @@
-var ChangeNameView = Backbone.View.extend({
+Pictionary.ChangeNameView = Backbone.View.extend({
   initialize: function() {
     _.bindAll(this, 'handleName', 'show');
     _.extend(this, Backbone.Events);

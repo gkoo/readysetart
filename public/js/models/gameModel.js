@@ -1,4 +1,4 @@
-var GameModel = Backbone.Model.extend({
+Pictionary.GameModel = Backbone.Model.extend({
   url: '/gamemodel',
 
   initialize: function() {

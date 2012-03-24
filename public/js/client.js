@@ -1,6 +1,6 @@
 // TODO: fix curruser
-var debug = 0;
+var debug = 1;
 
 $(function() {
-  var gameController = new GameController();
+  var pictionary = new Pictionary();
 });

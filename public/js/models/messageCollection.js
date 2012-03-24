@@ -1,4 +1,4 @@
-var MessageCollection = Backbone.Collection.extend({
+Pictionary.MessageCollection = Backbone.Collection.extend({
   initialize: function() {
     var _this = this;
     _.extend(this, Backbone.Events);
