@@ -126,7 +126,8 @@ Pictionary = function () {
   this.handleGameStatus = (function (model, socket) {
     var gameStatusModel = this.model.get('gameStatus');
 
-    if (typeof model.gameStatus !== 'undefined') {
+    if (typeof model.gameStatus !== 'undefined' &&
+        model.gameStatus !== gameStatusModel.get('gameStatus')) {
       gameStatusModel.set({ 'gameStatus': model.gameStatus });
       if (model.gameStatus === GameStatusEnum.IN_PROGRESS) {
         this.handleGameStart(model, socket);
@@ -267,14 +268,6 @@ Pictionary = function () {
       socket.on('endTurn', function () {
         console.log('endTurn');
       });
-
-      socket.on('gameStatus', (function(data) {
-        if (socket.id !== players.getLeader().get('id')) {
-          console.warn('tried to change game status but wasn\'t the leader');
-          return;
-        }
-        this.handleGameStatus(data);
-      }).bind(this));
 
       socket.on('setName', function (name) {
         socket.get('id', function (err, id) {
