@@ -2,8 +2,11 @@ var game     = require('./game'),
     wordBase = require('./wordbase/wordbase.js'),
     TURN_DURATION = 120000,
     TURN_BREAK_DURATION = 5000,
-    gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
-    GameStatusEnum = gameStatusLib.GameStatusEnum,
+    GameStatusEnum = {
+      NOT_STARTED : 0,
+      IN_PROGRESS : 1,
+      FINISHED    : 2
+    },
 
 Pictionary = function () {
   this.wordBase = wordBase;
@@ -30,20 +33,19 @@ Pictionary = function () {
   // user-generated messages
   this.setChat = function (chat) {
     this.chatController = chat;
-    this.chatController.bind('newMessages', this.doCheckGuesses);
+    this.chatController.bind('newMessage', this.doCheckGuesses);
     return this;
   };
 
   this.doCheckGuesses = (function (o) {
-    var messages     = o.messages,
+    var messageModel = o.message,
         currArtistId = this.model.get('players').getCurrentArtist();
 
     if (!currArtistId) { return; }
 
     // filter out any "guesses" from the artist
-    if (messages[0].sender !== currArtistId) {
-      console.log(messages);
-      correctGuess = this.wordBase.checkGuesses(messages);
+    if (messageModel.sender !== currArtistId) {
+      correctGuess = this.wordBase.checkGuesses(messageModel);
       if (correctGuess) {
         // handle on chat side
         o.callback(correctGuess, o.socket);
@@ -96,14 +98,14 @@ Pictionary = function () {
     }
   }).bind(this);
 
-  this.handleGameStart = function (o) {
+  this.handleGameStart = function (o, socket) {
     this.model.get('players').decideArtistOrder();
 
     // Clear cached paths
     this.userPaths = {};
     this.allPaths = [];
 
-    this.io.emit('gameStatus', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
+    socket.broadcast.emit('gameStatusUpdate', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
     this.startNextWarmUpAndTurn();
   };
 
@@ -121,15 +123,23 @@ Pictionary = function () {
   }).bind(this);
 
   // Start or finish game.
-  this.handleGameStatus = (function (o) {
-    if (typeof o.gameStatus !== 'undefined') {
-      this.model.get('gameStatus').set({ 'gameStatus': o.gameStatus });
-      if (o.gameStatus === GameStatusEnum.IN_PROGRESS) {
-        this.handleGameStart(o);
+  this.handleGameStatus = (function (model, socket) {
+    var gameStatusModel = this.model.get('gameStatus');
+
+    if (typeof model.gameStatus !== 'undefined') {
+      gameStatusModel.set({ 'gameStatus': model.gameStatus });
+      if (model.gameStatus === GameStatusEnum.IN_PROGRESS) {
+        this.handleGameStart(model, socket);
       }
-      else if (o.gameStatus === GameStatusEnum.FINISHED) {
-        this.handleGameFinish(o);
+      else if (model.gameStatus === GameStatusEnum.FINISHED) {
+        this.handleGameFinish(model);
       }
+    }
+    if (typeof model.freeDrawEnabled !== undefined &&
+        gameStatusModel.get('freeDrawEnabled') !== model.freeDrawEnabled) {
+      // Free draw value has been changed. Update everyone.
+      gameStatusModel.set({ 'freeDrawEnabled': model.freeDrawEnabled });
+      socket.broadcast.emit( 'toggleFreeDraw', { freeDrawEnabled: model.freeDrawEnabled });
     }
   }).bind(this);
 
@@ -194,6 +204,51 @@ Pictionary = function () {
     this.allPaths = [];
   };
 
+  this.create = function (data, socket) {
+    switch (data.modelName) {
+      case 'messageModel':
+        socket.emit(['read', data.modelName].join(':'),
+                    { 'model': this.model,
+                      'initPaths': this.allPaths,
+                      'userId': socket.id });
+        break;
+      default:
+        console.log('[WARNING] Did not recognize model name: ' + data.modelName);
+    }
+  };
+
+  this.read = function (data, socket) {
+    switch (data.modelName) {
+      case 'gameModel':
+        socket.emit(['read', data.modelName].join(':'),
+                    { 'model': this.model,
+                      'initPaths': this.allPaths,
+                      'userId': socket.id });
+        break;
+      default:
+        console.log('[WARNING] Did not recognize model name: ' + data.modelName);
+    }
+  };
+
+  this.update = (function (data, socket) {
+    var sendingPlayer = this.model.get('players').get(socket.id),
+        player,
+        modelInfo = data.modelName,
+        modelName = modelInfo[0];
+
+    if (data.modelName === 'players') {
+      player = this.model.get('players').get(data.model.id);
+      player.set(data.model);
+      socket.broadcast.emit('playerUpdate', data.model);
+    }
+    else if (data.modelName === 'gameStatus') {
+      // Only allow leader to make changes to game status.
+      if (sendingPlayer.get('isLeader')) {
+        this.handleGameStatus(data.model, socket);
+      }
+    }
+  }).bind(this);
+
   // Listen to Socket.io
   this.listen = function(io) {
     this.io = io.of('/game');
@@ -203,10 +258,6 @@ Pictionary = function () {
           players   = this.model.get('players');
 
       players.add(initInfo);
-
-      socket.emit('initGameModel', { 'model': this.model,
-                                     'initPaths': this.allPaths,
-                                     'userId': socket.id });
 
       this.chatController.broadcastNewPlayer(initInfo);
       socket.broadcast.emit('newPlayer', initInfo); // Sends to everyone except for new user
@@ -234,7 +285,7 @@ Pictionary = function () {
           else {
             player = players.get(id);
             player.set({ 'name': name });
-            socket.json.broadcast.emit('playerName', {
+            socket.json.broadcast.emit('playerUpdate', {
               id: id,
               name: name
             });
@@ -244,10 +295,6 @@ Pictionary = function () {
 
       socket.on('disconnect', (function () {
         this.handleDisconnect(socket);
-      }).bind(this));
-
-      socket.on('sync', (function (data) {
-        this.sync(data, socket);
       }).bind(this));
 
       socket.on('newPoints', (function (data) {
@@ -300,7 +347,7 @@ Pictionary = function () {
         }
       }).bind(this));
 
-      socket.on('clearBoard', (function() {
+      socket.on('clearBoard', (function () {
         socket.broadcast.emit('clearBoard');
         this.clearCachedPaths();
       }).bind(this));
@@ -309,9 +356,16 @@ Pictionary = function () {
         this.userColors[socket.id] = brushColor;
       }).bind(this));
 
-      socket.on('debug', (function() {
+      socket.on('debug', (function () {
         console.log(this.allPaths);
         //console.log(this.userPaths);
+      }).bind(this));
+
+      // ======================
+      // Backbone.sync handler
+      // ======================
+      socket.on('sync', (function (data) {
+        this[data.method](data, socket);
       }).bind(this));
     }).bind(this));
 

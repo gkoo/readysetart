@@ -1,15 +1,10 @@
-Pictionary.GameStatusController = function(o) {
+Pictionary.GameStatusController = function (o) {
   var controller = {
-    initialize: function(o) {
+    initialize: function (o) {
+      var eventMediator = Pictionary.getEventMediator();
+
       _.extend(this, Backbone.Events, o.playerFns);
-      _.bindAll(this, 'setGameStatus',
-                      'doTimerTick',
-                      'clearTimer',
-                      'restartTimer',
-                      'startPartialTimer',
-                      'handleGameStatus',
-                      'changeArtist',
-                      'reset');
+      _.bindAll(this);
 
       this.model = o.model;
       this.view = new Pictionary.GameStatusView({ el: $('#gameStatus'),
@@ -21,18 +16,29 @@ Pictionary.GameStatusController = function(o) {
       this.model.bind('change:currArtist', this.view.renderCurrArtist);
       this.model.bind('change:timeLeft',   this.view.renderTimeLeft);
 
+      eventMediator.bind('changeGameStatus', this.saveGameStatus);
+      eventMediator.bind('gameStatusUpdate', this.setGameStatus);
+      eventMediator.bind('nextUp', this.clearTimer);
+      eventMediator.bind('broadcastToggleFreeDraw', this.setFreeDraw);
+
       if (this.model.get('turnStart')) {
         this.startPartialTimer();
       }
       return this;
     },
 
-    setGameStatus: function(o) {
+    // saveGameStatus pushes state to the server.
+    saveGameStatus: function (o) {
+      this.model.save(o);
+    },
+
+    // setGameStatus only changes state locally.
+    setGameStatus: function (o) {
       this.model.set(o);
     },
 
     // Handles timer for drawer.
-    doTimerTick: function() {
+    doTimerTick: function () {
       var timeLeft = this.model.get('timeLeft') - 1;
 
       // End of turn
@@ -55,7 +61,7 @@ Pictionary.GameStatusController = function(o) {
       this.model.set({ 'timeLeft' : 0 });
     },
 
-    restartTimer: function(duration) {
+    restartTimer: function (duration) {
       var time, turnEnd, timeLeft,
           turnDuration = duration ? duration : this.model.get('turnDuration');
 
@@ -89,19 +95,19 @@ Pictionary.GameStatusController = function(o) {
       this.restartTimer(timeLeft);
     },
 
-    handleGameStatus: function(model, status) {
+    handleGameStatus: function (model, status) {
       var gameStatus = model.get('gameStatus');
-      if (gameStatus === GameStatusEnum.IN_PROGRESS
-          && model.previous('gameStatus') !== GameStatusEnum.IN_PROGRESS) {
+      if (gameStatus === Pictionary.statusEnum.IN_PROGRESS
+          && model.previous('gameStatus') !== Pictionary.statusEnum.IN_PROGRESS) {
         this.clearTimer();
       }
-      else if (gameStatus === GameStatusEnum.FINISHED) {
+      else if (gameStatus === Pictionary.statusEnum.FINISHED) {
         this.clearTimer();
         this.trigger('gameFinished');
       }
     },
 
-    changeArtist: function(model, artistId) {
+    changeArtist: function (model, artistId) {
       if (artistId === this.currPlayer.id) {
         // It's current user's turn now. Enable board.
         this.trigger('setupArtistTurn');
@@ -114,10 +120,17 @@ Pictionary.GameStatusController = function(o) {
       }
     },
 
+    setFreeDraw: function (o) {
+      // only allow set free draw if player is leader
+      if (this.currPlayer.get('isLeader')) {
+        this.model.save(o);
+      }
+    },
+
     reset: function () {
       this.clearTimer();
       this.changeArtist(null, -1);
-      this.setGameStatus({ 'gameStatus': GameStatusEnum.NOT_STARTED });
+      this.setGameStatus({ 'gameStatus': Pictionary.statusEnum.NOT_STARTED });
     }
   };
   return controller.initialize(o);

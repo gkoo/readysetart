@@ -23,12 +23,28 @@ MessageCollection = Backbone.Collection.extend({
       this.remove(modelsToRemove);
     }
   },
-
 }),
 
 ChatController = function () {
   var _this = this,
       io;
+
+  this.create = function (data, socket) {
+  };
+
+  this.read = function () {
+  };
+
+  this.update = function (data, socket) {
+    this.collection.add(data.model);
+    this.trigger('newMessage', { 'message': data.model,
+                                 'callback': this.handleCorrectGuess,
+                                 'socket':   socket });
+    socket.json.broadcast.emit('incomingMessage', data.model);
+  };
+
+  this.del = function () {
+  };
 
   // Function: listen
   // ================
@@ -36,7 +52,7 @@ ChatController = function () {
   // namespace.
   this.listen = function (socketio) {
     io = socketio.of('/chat'); // SocketNamespace
-    io.on('connection', function(socket) {
+    io.on('connection', (function(socket) {
       socket.on('newMessages', function(newMessages) {
         if (!newMessages || !newMessages.length) {
           console.log('[err] empty newMessages in chat');
@@ -49,7 +65,10 @@ ChatController = function () {
           socket.broadcast.emit('incomingMessages', newMessages);
         }
       });
-    });
+      socket.on('sync', (function (data) {
+        this[data.method](data, socket);
+      }).bind(this));
+    }).bind(this));
   };
 
   this.handleCorrectGuess = function(correctGuess, socket) {
@@ -66,6 +85,7 @@ ChatController = function () {
 
   this.initialize = function () {
     _u.extend(this, Backbone.Events);
+    _u.bindAll(this);
     this.collection = new MessageCollection();
     return this;
   };

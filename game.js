@@ -14,19 +14,20 @@
 
 var _u       = require('underscore'),
     pict     = require('./pictionary.js'),
-    chatLib  = require('./chat.js'),
     Backbone = require('backbone'),
 
-    //playerLib      = require('./public/js/models/playerModel.js'),
     playerLib      = require('./player.js'),
-    //teamLib      = require('./public/js/models/teamModel.js'),
-    gameStatusLib  = require('./public/js/models/gameStatusModel.js'),
 
 GameModel = Backbone.Model.extend({
   initialize: function (opt) {
-    this.set({ 'players':    new playerLib.PlayersCollection(),
-               'gameStatus': new gameStatusLib.GameStatusModel({ 'turnDuration': opt.turn_duration,
-                                                                 'warmupDuration': opt.turn_break_duration }),
+    var time = (new Date()).getTime(); // arbitrary id so that isNew
+                                       // is false on client side when
+                                       // saving.
+    this.set({ 'id':         time,
+               'players':    new playerLib.PlayersCollection(),
+               'gameStatus': new Backbone.Model({ 'turnDuration': opt.turn_duration,
+                                                  'warmupDuration': opt.turn_break_duration,
+                                                  'id': time })
              });
   }
 }),
@@ -41,33 +42,6 @@ GameController = module.exports.GameController = function (opt) {
 
   this.setChat = function (chat) {
     this.chatController = chat;
-  };
-
-  this.sync = function (data, socket) {
-    if (data.method === 'read') {
-      this.read(data, socket);
-    }
-    if (data.method === 'update') {
-      this.update(data, socket);
-    }
-  };
-
-  this.read = function (data, socket) {
-    if (data.model.type === 'game') {
-      socket.emit('readResponse', { 'type': 'game',
-                                    'model': this.model,
-                                    'userId': socket.id });
-    }
-  };
-
-  this.update = function (data, socket) {
-    var player;
-    if (data.model.type === 'player') {
-      player = this.model.get('players').get(data.model.id);
-      player.set(data.model);
-      console.log('broadcasting playerUpdate');
-      socket.broadcast.emit('playerUpdate', data.model);
-    }
   };
 
   /*

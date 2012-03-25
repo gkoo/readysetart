@@ -35,10 +35,10 @@ Pictionary.GameStatusView = Backbone.View.extend({
   },
 
   renderStatus: function(model, status) {
-    if (status === Pictionary.GameStatusEnum.IN_PROGRESS) {
+    if (status === Pictionary.statusEnum.IN_PROGRESS) {
       this.$statusEl.text('Started');
     }
-    else if (status === Pictionary.GameStatusEnum.FINISHED) {
+    else if (status === Pictionary.statusEnum.FINISHED) {
       this.$statusEl.text('Ended.');
     }
   },

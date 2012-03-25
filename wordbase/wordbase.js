@@ -68,29 +68,16 @@ module.exports = (function() {
       usedWords = [];
     },
 
-    checkGuesses: function(messages) {
+    checkGuesses: function (messageModel) {
       // Made this word synchronous rather than event-based
       // because for some reason Backbone's event was being
       // triggered twice. Wasn't able to figure it out.
-      var guessed = false,
-          i, len, message, newMessage;
-      if (this.currentWord) {
-        for (i=0, len=messages.length; i<len; ++i) {
-          newMessage = messages[i];
-          if (newMessage.msg.toLowerCase() === this.currentWord.toLowerCase()) {
-            // Correct guess!
-            guessed = true;
-            message = newMessage;
-            break;
-          }
-        }
+      if (this.currentWord &&
+          messageModel.msg.toLowerCase() === this.currentWord.toLowerCase()) {
+        // Correct guess!
+        return messageModel;
       }
-      if (guessed) {
-        return message;
-      }
-      else {
-        return 0;
-      }
+      return 0;
     }
   };
 

@@ -1,7 +1,9 @@
 Pictionary.ChangeNameView = Backbone.View.extend({
   initialize: function() {
-    _.bindAll(this, 'handleName', 'show');
+    _.bindAll(this);
     _.extend(this, Backbone.Events);
+    Pictionary.getEventMediator().bind('beginChangeName',
+                                       this.show);
   },
 
   events: {
@@ -24,10 +26,8 @@ Pictionary.ChangeNameView = Backbone.View.extend({
     evt.preventDefault();
     evt.stopPropagation();
 
-    this.trigger('setName', this.$('.nameField').val());
+    Pictionary.getEventMediator().trigger('setName', this.$('.nameField').val());
 
     this.$el.hide();
-    this.unbind();
-    this.$('#nameForm').unbind();
   }
 });

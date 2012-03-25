@@ -91,16 +91,16 @@ Pictionary.ChatView = Backbone.View.extend({
 
   handleChatMessage: function(evt) {
     var msg = $.trim(this.$textField.val());
+    evt.preventDefault();
     if (msg) {
-      this.trigger('submitMessage', msg);
+      Pictionary.getEventMediator().trigger('submitChatMessage', msg);
       this.$textField.val('');
     }
     this.scrollToBottom();
-    evt.preventDefault();
   },
 
   changeName: function () {
-    this.trigger('beginChangeName');
+    Pictionary.getEventMediator().trigger('beginChangeName');
   },
 
   displayCorrectGuess: function(o) {

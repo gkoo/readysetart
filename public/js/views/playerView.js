@@ -40,6 +40,8 @@ Pictionary.PlayerView = Backbone.View.extend({
 
 Pictionary.PlayersView = Backbone.View.extend({
   initialize: function(o) {
+    var eventMediator = Pictionary.getEventMediator();
+
     _.bindAll(this,
               'createNewPlayerView',
               'render',
@@ -52,8 +54,10 @@ Pictionary.PlayersView = Backbone.View.extend({
     this.getCurrPlayer = o.getCurrPlayer;
 
     this.collection.each(this.renderNewPlayer);
-    this.collection.bind('add', this.renderNewPlayer);
-    this.collection.bind('remove', this.removePlayer);
+
+    // Set up event bindings
+    eventMediator.bind('addedPlayer', this.renderNewPlayer);
+    eventMediator.bind('removedPlayer', this.removePlayer);
   },
 
   createNewPlayerView: function(model) {

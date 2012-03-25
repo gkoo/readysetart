@@ -2,13 +2,13 @@ Pictionary.MessageCollection = Backbone.Collection.extend({
   initialize: function() {
     var _this = this;
     _.extend(this, Backbone.Events);
-    _.bindAll(this, 'addMessage', 'flushOutboundMessages');
+    _.bindAll(this);
     this.bind('add', function(msg) {
       _this.trigger('addMessage', msg);
     });
   },
 
-  outboundMessages: [],
+  url: 'chat/messageCollection',
 
   comparator: function(message) {
     return message.get('time') || 0;
@@ -22,24 +22,21 @@ Pictionary.MessageCollection = Backbone.Collection.extend({
         sender, msgObjList;
 
     if (o.msg) {
-      msgObj = { msg: o.msg,
+      msgObj = { id:      [o.id, date].join(':'),
+                 msg:     o.msg,
                  sender:  o.id,
                  name:    o.name,
                  time:    date };
 
-      this.add(msgObj);
-      if (addToOutbound) { this.outboundMessages.push(msgObj); }
+      if (addToOutbound) {
+        this.create(msgObj);
+        console.log('creating');
+      }
+      else {
+        this.add(msgObj);
+        console.log('adding');
+      }
     }
-    else if (typeof o === 'object' && o.length) {
-      msgObjList = [];
-      _.each(o, function(msgObj) {
-        msgObjList.push(msgObj);
-        if (addToOutbound) { _this.outboundMessages.push(msgObj); }
-      });
-      this.add(msgObjList);
-    }
-
-    // TODO: associate message with name.
   },
 
   // add a message not associated with any sender
@@ -50,16 +47,7 @@ Pictionary.MessageCollection = Backbone.Collection.extend({
             sender: -1,
             name: '',
             time: (new Date()).getTime() };
-    this.add(msg);
-    if (addToOutbound) {
-      this.outboundMessages.push(msg);
-    }
-  },
 
-  // Returns outbound message buffer and clears it.
-  flushOutboundMessages: function () {
-    var outbound = this.outboundMessages;
-    this.outboundMessages = [];
-    return outbound;
-  }
+    addToOutbound ? this.create(msg) : this.add(msg);
+  },
 });

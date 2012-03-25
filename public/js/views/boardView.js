@@ -6,29 +6,7 @@ Pictionary.BoardView = Backbone.View.extend({
     paper.setup(document.getElementById('gameBoard'));
 
     _.extend(this, Backbone.Events);
-    _.bindAll(this,
-              'doClearAndBroadcast',
-              'doClear',
-              'changeColor',
-              'doDrawSleep',
-              'mouseDown',
-              'mouseDrag',
-              'mouseUp',
-              'updateWordToDraw',
-              'clearWordToDraw',
-              'reset',
-              'enable',
-              'disable',
-              'resetAndEnable',
-              'handleFreeDraw',
-              'handleDrawEnable',
-              'sendNewPoints',
-              'handleNewPoints',
-              'handleCompletedPath',
-              'handleInitPaths',
-              'doNextUpInterval',
-              'handleNextUp',
-              'handleGameFinished');
+    _.bindAll(this);
 
     this.setupPaperCanvas();
     this.canvas = this.$('#gameBoard');
@@ -38,6 +16,7 @@ Pictionary.BoardView = Backbone.View.extend({
     this.$boardControls = this.$('#boardControls');
     this.bind('boardView:drawEnabled', this.handleDrawEnable);
     this.handleFreeDraw(o); // check if we are in freeDraw mode
+    this.setupBackboneEvents();
   },
 
   simplifyLevel: 10,
@@ -87,6 +66,22 @@ Pictionary.BoardView = Backbone.View.extend({
   events: {
     'click #clearBoard': 'doClearAndBroadcast',
     'click a.color:': 'changeColor'
+  },
+
+  setupBackboneEvents: function () {
+    var eventMediator = Pictionary.getEventMediator(),
+        _this = this;
+    eventMediator.bind('notifyCorrectGuess', this.doClear);
+    eventMediator.bind('gameStatus', this.doClear);
+    eventMediator.bind('nextUp', this.handleNextUp);
+    eventMediator.bind('wordToDraw', this.updateWordToDraw);
+    eventMediator.bind('clearBoard', this.doClear);
+    eventMediator.bind('toggleFreeDraw', this.handleFreeDraw);
+    eventMediator.bind('completedPath', this.handleCompletedPath);
+    eventMediator.bind('newPoints', this.handleNewPoints);
+    eventMediator.bind('broadcastToggleFreeDraw', function (data) {
+      data.freeDrawEnabled ? _this.enable() : _this.disable();
+    });
   },
 
   doClearAndBroadcast: function () {
@@ -155,8 +150,9 @@ Pictionary.BoardView = Backbone.View.extend({
 
     if (this.enabled && this.path) {
       this.path.simplify(this.simplifyLevel);
-      this.trigger('boardView:completedPath', { 'eventName': 'completedPath',
-                                                'data': lastPoints });
+      Pictionary.getEventMediator().trigger('completedBoardPath',
+                                            { 'eventName': 'completedPath',
+                                              'data': lastPoints });
     }
   },
 
@@ -213,8 +209,8 @@ Pictionary.BoardView = Backbone.View.extend({
   handleFreeDraw: function(o) {
     var freeDraw, found = false;
     if (typeof o === 'object') {
-      if (o.data) {
-        freeDraw = o.data.freeDraw;
+      if (o.freeDrawEnabled) {
+        freeDraw = o.freeDrawEnabled;
         found = true;
       }
       else if (typeof o.freeDraw !== 'undefined') {
@@ -330,8 +326,8 @@ Pictionary.BoardView = Backbone.View.extend({
     if (points.length) {
       // We have new points to send.
       this.currUserPathPoints = [];
-      this.trigger('boardView:sendPoints', { 'eventName': 'newPoints',
-                                             'data': points });
+      Pictionary.getEventMediator().trigger('sendBoardPoints', { 'eventName': 'newPoints',
+                                            'data': points });
     }
   }
 });

@@ -21,25 +21,25 @@ Pictionary.ChatController = function(chatSocket) {
       this.view  = new Pictionary.ChatView({ el: $('#chat'),
                                   collection: this.collection });
 
-      setInterval(function() {
-        var newMessages = _this.collection.flushOutboundMessages();
-        if (newMessages && newMessages.length) {
-          _this.chatSocket.emit('newMessages', newMessages); // send message to server
-        }
-      }, 500);
       this.setupBackboneEvents();
       this.setupSocketEvents();
       return this;
     },
 
     setupBackboneEvents: function () {
-      var _this = this;
-      this.view.bind('submitMessage', this.addUserMessageToModel);
+      var _this = this,
+          eventMediator = Pictionary.getEventMediator();
+
+      eventMediator.bind('submitChatMessage', this.addUserMessageToModel);
       this.view.bind('beginChangeName', function () {
         // bubble event up to gameController.
-        _this.trigger('beginChangeName');
+        eventMediator.trigger('beginChangeName');
       });
       this.collection.bind('addMessage', this.view.addChatMessage);
+      eventMediator.bind('removedPlayer', this.handlePlayerDisconnect);
+      eventMediator.bind('changePlayerName', this.handleNameChange);
+      eventMediator.bind('newLeader', this.handleNewLeader);
+      eventMediator.bind('nextUp', this.notifyNextArtist);
     },
 
     setupSocketEvents: function () {
@@ -50,7 +50,7 @@ Pictionary.ChatController = function(chatSocket) {
       this.chatSocket.on('newPlayer', function(info) {
         _this.collection.addSysMessage(info.name + ' has joined the room.');
       });
-      this.chatSocket.on('incomingMessages', this.collection.addMessage);
+      this.chatSocket.on('incomingMessage', this.collection.addMessage);
       this.chatSocket.on('notifyCorrectGuess', this.notifyCorrectGuess);
     },
 

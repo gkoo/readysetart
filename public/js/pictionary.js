@@ -1,7 +1,7 @@
 var gameSocket,
     chatSocket,
 
-Pictionary = function() {
+Pictionary = function () {
   var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com';
   _.extend(this, Backbone.Events);
   _.bindAll(this,
@@ -15,22 +15,25 @@ Pictionary = function() {
             'emitGameSocketEvent',
             'setupSocketEvents',
             'debug');
-  this.model = new Pictionary.GameModel();
   gameSocket = io.connect(domainPrefix + '/game');
   chatSocket = io.connect(domainPrefix + '/chat');
   this.gameSocket = gameSocket;
+  this.model = new Pictionary.GameModel();
   this.chatController = new Pictionary.ChatController(chatSocket);
 
   // bind initGameModel here because we don't bind
   // the rest of the events until we get the game model
   // from the server.
-  this.bind('initGameModel', this.handleGameModel);
+  //this.bind('initGameModel', this.handleGameModel);
+  Pictionary.getEventMediator().bind('gameModel', this.handleGameModel);
 
   this.setupSocketEvents();
+
+  this.model.fetch();
 };
 
 Pictionary.prototype = {
-  setupViews: function() {
+  setupViews: function () {
     // At this point, the models should be set up already as a result of the
     // fetch. We just need to populate the views with them now.
 
@@ -54,7 +57,7 @@ Pictionary.prototype = {
   // First, set up the models.
   // Then, set up the views.
   // Finally, set up the events.
-  setupGameState: function(gameData) {
+  setupGameState: function (gameData) {
     this.gameStatus  = new Pictionary.GameStatusModel(gameData.gameStatus);
     this.playersColl = new Pictionary.PlayersCollection(gameData.players);
     this.playersColl.userId = this.userId;
@@ -69,24 +72,20 @@ Pictionary.prototype = {
   },
 
   // Decompose this function out to avoid variable hoisting.
-  assignSocketHandler: function(eventName) {
-    var _this = this;
-    this.gameSocket.on(eventName, function(data) {
-      _this.trigger(eventName, data);
+  assignSocketHandler: function (eventName) {
+    this.gameSocket.on(eventName, function (data) {
+      Pictionary.getEventMediator().trigger(eventName, data);
     });
   },
 
   // SOCKET.IO EVENTS
-  setupSocketEvents: function() {
+  setupSocketEvents: function () {
     var i, len, eventName, _this = this,
         // a list of events to delegate to Backbone events
-        eventsToDelegate = ['initGameModel',
-                            'yourTurn',
-                            'gameStatus',
+        eventsToDelegate = ['gameStatus',
                             'playerUpdate',
                             'newPlayer',
                             'playerDisconnect',
-                            'playerName',
                             'newPoints',
                             'completedPath',
                             'toggleFreeDraw',
@@ -101,54 +100,26 @@ Pictionary.prototype = {
   },
 
   // BACKBONE EVENTS
-  initEvents: function() {
-    var _this = this;
-    this.bind('yourTurn', function() {
-      _this.toggleYourTurn(true);
-    });
+  initEvents: function () {
+    var _this = this,
+        eventMediator = Pictionary.getEventMediator();
 
-    this.bind('endTurn', function() {
+    this.bind('endTurn', function () {
       _this.gameSocket.emit('endTurn');
       _this.toggleYourTurn(false);
     });
 
-    this.changeNameView.bind('setName', function(name) {
+    eventMediator.bind('setName', function (name) {
       var o = { id: _this.userId,
                 name: name };
       _this.playersColl.setPlayerName(o);
     });
 
-    this.chatController.bind('beginChangeName', this.changeNameView.show);
-
-    // PlayerCollection Events
-    this.bind('newPlayer',    this.playersColl.handleNewPlayer);
-    this.bind('playerUpdate', this.playersColl.playerUpdate);
-    this.bind('playerName',   this.playersColl.setPlayerName);
-    this.bind('playerDisconnect', this.playersColl.playerDisconnect);
-    this.bind('notifyCorrectGuess', this.boardView.doClear);
-    // Communicate with chat this way so that we can display the name of the
-    // player that left
-    this.playersColl.bind('player:removedPlayer', this.chatController.handlePlayerDisconnect);
-    this.playersColl.bind('player:changeName', this.chatController.handleNameChange);
-    this.playersColl.bind('player:newLeader', this.chatController.handleNewLeader);
-    this.playersColl.bind('player:promotedToLeader', this.gameControls.showControls);
-
-    // TeamCollection Events
-    //this.bind('newPlayer', this.teamsColl.addPlayer);
-
     // Board Events
-    this.boardView.bind('boardView:sendPoints', this.emitGameSocketEvent);
-    this.boardView.bind('boardView:completedPath', this.emitGameSocketEvent);
+    eventMediator.bind('sendBoardPoints', this.emitGameSocketEvent);
+    eventMediator.bind('completedBoardPath', this.emitGameSocketEvent);
     this.boardView.bind('boardView:clear', this.emitGameSocketEvent);
     this.boardView.bind('boardView:changeColor', this.emitGameSocketEvent);
-    this.bind('newPoints', this.boardView.handleNewPoints);
-    this.bind('completedPath', this.boardView.handleCompletedPath);
-    this.bind('toggleFreeDraw', this.boardView.handleFreeDraw);
-    this.bind('clearBoard', this.boardView.doClear);
-    this.bind('wordToDraw', this.boardView.updateWordToDraw);
-    this.bind('nextUp', this.chatController.notifyNextArtist);
-    this.bind('nextUp', this.gameStatusController.clearTimer);
-    this.bind('nextUp', this.boardView.handleNextUp);
 
     // Game Status Events
     this.gameStatusController.bind('turnOver', this.boardView.disable);
@@ -158,24 +129,16 @@ Pictionary.prototype = {
     this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
     this.gameStatusController.bind('artistChange', this.boardView.reset);
 
-    // Controller Events
-    this.bind('gameStatus', this.gameStatusController.setGameStatus);
-    this.bind('gameStatus', this.gameControls.updateControls);
-    this.bind('gameStatus', this.boardView.doClear);
-
     // Game Controls Events
     this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
     this.gameControls.bind('gameControls:clearBoard', this.boardView.doClearAndBroadcast);
     this.gameControls.bind('gameControls:debug', this.debug);
-    this.gameControls.bind('gameControls:gameStatus', this.emitGameSocketEvent);
-    this.gameControls.bind('gameControls:gameStatus', this.gameStatusController.setGameStatus);
-    this.gameControls.bind('gameControls:freeDraw', this.boardView.handleFreeDraw);
-    this.gameControls.bind('gameControls:freeDraw', this.emitGameSocketEvent);
+    eventMediator.bind('broadcastToggleFreeDraw', this.emitGameSocketEvent);
     this.gameControls.bind('gameControls:stopGame', this.emitGameSocketEvent);
     this.gameControls.bind('gameControls:stopGame', this.gameStatusController.reset);
   },
 
-  handleGameModel: function(data) {
+  handleGameModel: function (data) {
     var players, teams;
     if (!data || !data.model) {
       console.log('[err] couldn\'t detect data');
@@ -191,15 +154,15 @@ Pictionary.prototype = {
     }
   },
 
-  getPlayerById: function(id) {
+  getPlayerById: function (id) {
     return this.playersColl.get(id);
   },
 
-  getCurrPlayer: function() {
+  getCurrPlayer: function () {
     return this.playersColl.get(this.userId);
   },
 
-  toggleYourTurn: function(state) {
+  toggleYourTurn: function (state) {
     console.log('toggling turn: ' + state);
     if (typeof state !== 'undefined') {
       state = true;
@@ -234,12 +197,63 @@ Pictionary.prototype = {
   },
 
   debug: function () {
-    //alert(this.chatController.view.atBottomOfChat());
     this.gameSocket.emit('debug');
   }
 };
 
-Backbone.sync = function(method, model) {
-  console.log('syncing...');
-  gameSocket.emit('sync', { 'model': model, 'method': method });
+_.extend(Pictionary, {
+  // =============
+  // EventMediator
+  // =============
+  // Handles the facilitation of event communication
+  // between various Pictionary objects. Is a singleton.
+  EventMediator: function () {
+    if (typeof this._eventMediator !== 'undefined') {
+      return this._eventMediator;
+    }
+    _.extend(this, Backbone.Events);
+  },
+
+  // ================
+  // getEventMediator
+  // ================
+  // Gets the EventMediator singleton from the Pictionary object.
+  getEventMediator: function () {
+    if (typeof this._eventMediator !== 'undefined') {
+      return this._eventMediator;
+    }
+    else {
+      this._eventMediator = new this.EventMediator();
+      return this._eventMediator;
+    }
+  },
+
+  statusEnum: {
+    NOT_STARTED : 0,
+    IN_PROGRESS : 1,
+    FINISHED    : 2
+  }
+});
+
+Backbone.sync = function (method, model, options) {
+  var modelUrl = model.url().split('/'),
+      socket = modelUrl[0],
+      modelName = modelUrl[1],
+      data = { 'modelName': modelName,
+               'method': method };
+
+  if (method === 'create' || method === 'update') {
+    data.model = model.toJSON();
+  }
+
+  if (socket === 'game') { gameSocket.emit('sync', data); }
+  else if (socket === 'chat') { chatSocket.emit('sync', data); }
+
+  if (method === 'read') {
+    gameSocket.once([method, modelName].join(':'), function (data) {
+      if (modelName === 'gameModel') {
+        Pictionary.getEventMediator().trigger('gameModel', data);
+      }
+    });
+  }
 };

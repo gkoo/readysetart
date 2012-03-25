@@ -3,19 +3,18 @@
 
 var _u        = require('underscore'),
     Backbone  = require('backbone'),
-    playerLib = require('./public/js/models/playerModel.js'),
 
-PlayersCollection = playerLib.PlayersCollection.extend({
+PlayersCollection = Backbone.Collection.extend({
   // Returns the ID of the current artist
-  getCurrentArtist: function() {
+  getCurrentArtist: function () {
     return this.artistOrder && this.pos >= 0 && this.artistOrder.length ? this.artistOrder[this.pos] : 0;
   },
 
-  hasNextArtist: function() {
+  hasNextArtist: function () {
     return this.artistOrder && this.pos < this.artistOrder.length - 1;
   },
 
-  getNextArtist: function() {
+  getNextArtist: function () {
     var nextArtistId;
 
     if (!this.artistOrder || !this.artistOrder.length) {
@@ -44,17 +43,17 @@ PlayersCollection = playerLib.PlayersCollection.extend({
     }
   },
 
-  decideArtistOrder: function() {
+  decideArtistOrder: function () {
     // TODO: Figure out if underscore 1.2.0 exists in NodeJS
     /*
     var tmpOrder = [];
-    this.each(function(player) {
+    this.each(function (player) {
       tmpOrder.push(player.id);
     });
     this.artistOrder = _u.shuffle(tmpOrder);
     */
     var len, idx, artistId,
-        playerIds = this.map(function(player) { return player.id; });
+        playerIds = this.map(function (player) { return player.id; });
 
     // Random insert into artistOrder
     this.artistOrder = [];
@@ -66,6 +65,12 @@ PlayersCollection = playerLib.PlayersCollection.extend({
       len = playerIds.length;
     }
     this.pos = -1;
+  },
+
+  getLeader: function () {
+    return this.find(function(player) {
+      return player.get('isLeader');
+    });
   }
 });
 
