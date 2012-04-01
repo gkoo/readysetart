@@ -11,10 +11,7 @@ Pictionary.GameStatusController = function (o) {
                                        model: this.model,
                                        getPlayerById: this.getPlayerById });
       this.model.bind('change:gameStatus', this.handleGameStatus);
-      this.model.bind('change:gameStatus', this.view.renderStatus);
       this.model.bind('change:currArtist', this.changeArtist);
-      this.model.bind('change:currArtist', this.view.renderCurrArtist);
-      this.model.bind('change:timeLeft',   this.view.renderTimeLeft);
 
       eventMediator.bind('changeGameStatus', this.saveGameStatus);
       eventMediator.bind('gameStatusUpdate', this.setGameStatus);
@@ -108,13 +105,6 @@ Pictionary.GameStatusController = function (o) {
     },
 
     changeArtist: function (model, artistId) {
-      if (artistId === this.currPlayer.id) {
-        // It's current user's turn now. Enable board.
-        this.trigger('setupArtistTurn');
-      }
-      else {
-        this.trigger('artistChange');
-      }
       if (artistId !== -1) {
         this.restartTimer();
       }

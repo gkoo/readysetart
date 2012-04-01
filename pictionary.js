@@ -1,4 +1,6 @@
-var game     = require('./game'),
+var _u       = require('underscore'),
+    Backbone = require('backbone'),
+    PlayersCollection = require('./player.js'),
     wordBase = require('./wordbase/wordbase.js'),
     TURN_DURATION = 120000,
     TURN_BREAK_DURATION = 5000,
@@ -8,10 +10,29 @@ var game     = require('./game'),
       FINISHED    : 2
     },
 
-Pictionary = function () {
-  this.wordBase = wordBase;
-  this.turn_duration = TURN_DURATION;
-  this.turn_break_duration = TURN_BREAK_DURATION;
+GameModel = Backbone.Model.extend({
+  initialize: function () {
+    var time = (new Date()).getTime(); // arbitrary id so that isNew
+                                       // is false on client side when
+                                       // saving.
+    this.set({
+      'id': 'lobby:game',
+      'players': new PlayersCollection(),
+      'gameStatus': new Backbone.Model({ 'turnDuration': TURN_DURATION,
+                                         'warmupDuration': TURN_BREAK_DURATION,
+                                         'id': 'lobby:gameStatus' })
+    });
+  }
+}),
+
+Pictionary = {
+  initialize: function () {
+    _u.bindAll(this);
+    _u.extend(this, Backbone.Events);
+    this.model = new GameModel();
+
+    return this;
+  },
 
   // For each incoming path, store in userPaths keyed by socket.id
   // Once mouseup event comes in, move path from userPaths to allPaths
@@ -20,24 +41,30 @@ Pictionary = function () {
 
   // Holds arrays of PaperJS Points, keyed by socket.id
   // Used primarily for freeDraw
-  this.userPaths = {};
-
-  this.userColors = {};
+  userPaths: {},
 
   // Array of arrays of PaperJS Points
   // (Array of Paths)
-  this.allPaths = [];
+  allPaths: [],
+
+  wordBase: wordBase,
+
+  turn_duration: TURN_DURATION,
+
+  turn_break_duration: TURN_BREAK_DURATION,
+
+  userColors: {},
 
   // Override
   // TODO: Need to distinguish between system messages and
   // user-generated messages
-  this.setChat = function (chat) {
+  setChat: function (chat) {
     this.chatController = chat;
     this.chatController.bind('newMessage', this.doCheckGuesses);
     return this;
-  };
+  },
 
-  this.doCheckGuesses = (function (o) {
+  doCheckGuesses: function (o) {
     var messageModel = o.message,
         currArtistId = this.model.get('players').getCurrentArtist();
 
@@ -53,19 +80,19 @@ Pictionary = function () {
         this.sendNextWord();
       }
     }
-  }).bind(this);
+  },
 
-  this.sendNextWord = (function () {
+  sendNextWord: function () {
     var nextWord     = this.wordBase.getUnusedWord(),
         playersModel = this.model.get('players'),
         currArtistId = playersModel.getCurrentArtist();
 
     // Send currArtist the next word.
     this.io.socket(currArtistId).emit('wordToDraw', nextWord);
-  }).bind(this);
+  },
 
   // Start the actual turn for the artist.
-  this.startNextTurn = (function () {
+  startNextTurn: function () {
     var model = this.model;
         gameStatusModel = model.get('gameStatus'),
         currArtist = model.get('players').getCurrentArtist(),
@@ -75,15 +102,15 @@ Pictionary = function () {
                       'turnStart': turnStart };
 
     gameStatusModel.set(newStatus);
-    this.io.emit('gameStatus', newStatus);
+    this.io.emit('gameStatusUpdate', newStatus);
     this.sendNextWord();
     //this.turnInterval = setInterval(this.doTurnInterval, 1000);
     this.turnTimeout = setTimeout(this.startNextWarmUpAndTurn, this.turn_duration);
-  }).bind(this);
+  },
 
   // Starts the next turn, buffered by 5 seconds to
   // allow the players to prepare.
-  this.startNextWarmUpAndTurn = (function () {
+  startNextWarmUpAndTurn: function () {
     var players   = this.model.get('players'),
         nextArtist;
 
@@ -96,9 +123,9 @@ Pictionary = function () {
       // No more artists, signal end of round.
       this.handleGameFinish();
     }
-  }).bind(this);
+  },
 
-  this.handleGameStart = function (o, socket) {
+  handleGameStart: function (o, socket) {
     this.model.get('players').decideArtistOrder();
 
     // Clear cached paths
@@ -107,9 +134,9 @@ Pictionary = function () {
 
     socket.broadcast.emit('gameStatusUpdate', { 'gameStatus': GameStatusEnum.IN_PROGRESS });
     this.startNextWarmUpAndTurn();
-  };
+  },
 
-  this.handleGameFinish = (function (o) {
+  handleGameFinish: function (o) {
     var gameStatusModel = this.model.get('gameStatus'),
         newStatus = { 'gameStatus': GameStatusEnum.FINISHED,
                       'currArtist': -1,
@@ -118,12 +145,12 @@ Pictionary = function () {
     if (this.turnTimeout) {
       clearTimeout(this.turnTimeout);
     }
-    this.io.emit('gameStatus', newStatus);
+    this.io.emit('gameStatusUpdate', newStatus);
     this.clearCachedPaths();
-  }).bind(this);
+  },
 
   // Start or finish game.
-  this.handleGameStatus = (function (model, socket) {
+  handleGameStatus: function (model, socket) {
     var gameStatusModel = this.model.get('gameStatus');
 
     if (typeof model.gameStatus !== 'undefined' &&
@@ -142,9 +169,9 @@ Pictionary = function () {
       gameStatusModel.set({ 'freeDrawEnabled': model.freeDrawEnabled });
       socket.broadcast.emit( 'toggleFreeDraw', { freeDrawEnabled: model.freeDrawEnabled });
     }
-  }).bind(this);
+  },
 
-  this.handleDisconnect = (function (socket) {
+  handleDisconnect: function (socket) {
     var id         = socket.id,
         players    = this.model.get('players'),
         player     = players.get(id),
@@ -180,10 +207,10 @@ Pictionary = function () {
       }
       this.startNextWarmUpAndTurn();
     }
-  }).bind(this);
+  },
 
   // Create the data to pass to a newly connected player
-  this.createInitPlayerInfo = (function (id) {
+  createInitPlayerInfo: function (id) {
     var players   = this.model.get('players'),
         name      = 'Player ' + id,
         isLeader  = !players.length; // first player defaults to leader
@@ -191,21 +218,21 @@ Pictionary = function () {
     return { 'id':       id,
              'name':     name,
              'isLeader': isLeader };
-  }).bind(this);
+  },
 
-  this.getUserColor = function (socketid) {
+  getUserColor: function (socketid) {
     if (this.userColors[socketid]) {
       return this.userColors[socketid];
     }
     return '#000';
-  };
+  },
 
-  this.clearCachedPaths = function () {
+  clearCachedPaths: function () {
     this.userPaths = {};
     this.allPaths = [];
-  };
+  },
 
-  this.create = function (data, socket) {
+  create: function (data, socket) {
     switch (data.modelName) {
       case 'messageModel':
         socket.emit(['read', data.modelName].join(':'),
@@ -216,9 +243,9 @@ Pictionary = function () {
       default:
         console.log('[WARNING] Did not recognize model name: ' + data.modelName);
     }
-  };
+  },
 
-  this.read = function (data, socket) {
+  read: function (data, socket) {
     switch (data.modelName) {
       case 'gameModel':
         socket.emit(['read', data.modelName].join(':'),
@@ -229,9 +256,9 @@ Pictionary = function () {
       default:
         console.log('[WARNING] Did not recognize model name: ' + data.modelName);
     }
-  };
+  },
 
-  this.update = (function (data, socket) {
+  update: function (data, socket) {
     var sendingPlayer = this.model.get('players').get(socket.id),
         player,
         modelInfo = data.modelName,
@@ -248,10 +275,10 @@ Pictionary = function () {
         this.handleGameStatus(data.model, socket);
       }
     }
-  }).bind(this);
+  },
 
   // Listen to Socket.io
-  this.listen = function(io) {
+  listen: function(io) {
     this.io = io.of('/game');
 
     this.io.on('connection', (function (socket) {
@@ -363,14 +390,8 @@ Pictionary = function () {
     }).bind(this));
 
     return this;
-  };
-
-  return this;
+  }
 };
 
-// Inherit from Game framework
-Pictionary.prototype = new game.GameController({ turn_duration: TURN_DURATION,
-                                                 turn_break_duration: TURN_BREAK_DURATION });
 
-
-module.exports = new Pictionary();
+module.exports = Pictionary.initialize();

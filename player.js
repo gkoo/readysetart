@@ -1,5 +1,4 @@
-// Extend client-side players model with some server-side specific
-// functionality.
+// Collection with some server-side specific functionality for players.
 
 var _u        = require('underscore'),
     Backbone  = require('backbone'),
@@ -74,4 +73,4 @@ PlayersCollection = Backbone.Collection.extend({
   }
 });
 
-exports.PlayersCollection = PlayersCollection;
+module.exports = PlayersCollection;

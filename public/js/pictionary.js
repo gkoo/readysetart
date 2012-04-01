@@ -4,17 +4,7 @@ var gameSocket,
 Pictionary = function () {
   var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com';
   _.extend(this, Backbone.Events);
-  _.bindAll(this,
-            'setupViews',
-            'setupGameState',
-            'assignSocketHandler',
-            'initEvents',
-            'handleGameModel',
-            'getCurrPlayer',
-            'getPlayerById',
-            'emitGameSocketEvent',
-            'setupSocketEvents',
-            'debug');
+  _.bindAll(this);
   gameSocket = io.connect(domainPrefix + '/game');
   chatSocket = io.connect(domainPrefix + '/chat');
   this.gameSocket = gameSocket;
@@ -33,6 +23,23 @@ Pictionary = function () {
 };
 
 Pictionary.prototype = {
+  // First, set up the models.
+  // Then, set up the views.
+  // Finally, set up the events.
+  setupGameState: function (gameData) {
+    this.gameStatus  = new Pictionary.GameStatusModel(gameData.gameStatus);
+    this.playersColl = new Pictionary.PlayersCollection(gameData.players);
+    this.playersColl.userId = this.userId;
+    this.currPlayer  = this.playersColl.get(this.userId);
+    this.playerHelperFns = { 'currPlayer':    this.currPlayer,
+                             'getPlayerById': this.getPlayerById };
+
+    _.extend(this.chatController, this.playerHelperFns);
+
+    this.setupViews();
+    this.initEvents();
+  },
+
   setupViews: function () {
     // At this point, the models should be set up already as a result of the
     // fetch. We just need to populate the views with them now.
@@ -54,23 +61,6 @@ Pictionary.prototype = {
     _.extend(this.boardView, this.playerHelperFns);
   },
 
-  // First, set up the models.
-  // Then, set up the views.
-  // Finally, set up the events.
-  setupGameState: function (gameData) {
-    this.gameStatus  = new Pictionary.GameStatusModel(gameData.gameStatus);
-    this.playersColl = new Pictionary.PlayersCollection(gameData.players);
-    this.playersColl.userId = this.userId;
-    this.currPlayer  = this.playersColl.get(this.userId);
-    this.playerHelperFns = { 'currPlayer':    this.currPlayer,
-                             'getPlayerById': this.getPlayerById };
-
-    _.extend(this.chatController, this.playerHelperFns);
-
-    this.setupViews();
-    this.initEvents();
-  },
-
   // Decompose this function out to avoid variable hoisting.
   assignSocketHandler: function (eventName) {
     this.gameSocket.on(eventName, function (data) {
@@ -82,7 +72,7 @@ Pictionary.prototype = {
   setupSocketEvents: function () {
     var i, len, eventName, _this = this,
         // a list of events to delegate to Backbone events
-        eventsToDelegate = ['gameStatus',
+        eventsToDelegate = ['gameStatusUpdate',
                             'playerUpdate',
                             'newPlayer',
                             'playerDisconnect',
@@ -126,8 +116,6 @@ Pictionary.prototype = {
     this.gameStatusController.bind('turnOver', this.boardView.reset);
     this.gameStatusController.bind('gameFinished', this.boardView.handleGameFinished);
     this.gameStatusController.bind('gameFinished', this.chatController.handleGameFinished);
-    this.gameStatusController.bind('setupArtistTurn', this.boardView.resetAndEnable);
-    this.gameStatusController.bind('artistChange', this.boardView.reset);
 
     // Game Controls Events
     this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);

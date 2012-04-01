@@ -1,15 +1,16 @@
 // TODO: show game status messages in chat
 Pictionary.GameStatusView = Backbone.View.extend({
   initialize: function(o) {
-    _.bindAll(this, 'render',
-                    'renderTimeLeft',
-                    'renderStatus',
-                    'renderCurrArtist');
+    _.bindAll(this);
     this.getPlayerById = o.getPlayerById;
     this.$statusEl      = this.$('.status .value');
     this.$artistEl      = this.$('.artist .value');
     this.$timeLeftEl    = this.$('.timeLeft .value');
     this.render();
+
+    this.model.bind('change:gameStatus', this.renderStatus);
+    this.model.bind('change:currArtist', this.renderCurrArtist);
+    this.model.bind('change:timeLeft',   this.renderTimeLeft);
   },
 
   render: function() {

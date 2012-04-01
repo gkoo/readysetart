@@ -72,7 +72,7 @@ Pictionary.BoardView = Backbone.View.extend({
     var eventMediator = Pictionary.getEventMediator(),
         _this = this;
     eventMediator.bind('notifyCorrectGuess', this.doClear);
-    eventMediator.bind('gameStatus', this.doClear);
+    eventMediator.bind('gameStatusUpdate', this.handleGameStatus);
     eventMediator.bind('nextUp', this.handleNextUp);
     eventMediator.bind('wordToDraw', this.updateWordToDraw);
     eventMediator.bind('clearBoard', this.doClear);
@@ -201,9 +201,15 @@ Pictionary.BoardView = Backbone.View.extend({
     this.trigger('boardView:drawEnabled', false);
   },
 
-  resetAndEnable: function() {
-    this.reset();
-    this.enable();
+  handleGameStatus: function (data) {
+    if (data.currArtist > 0 && data.currArtist === this.currPlayer.id) {
+      this.doClear();
+      this.clearWordToDraw();
+      this.enable();
+    }
+    else {
+      this.reset();
+    }
   },
 
   handleFreeDraw: function(o) {
