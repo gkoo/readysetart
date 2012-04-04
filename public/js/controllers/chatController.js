@@ -35,11 +35,12 @@ Pictionary.ChatController = function(chatSocket) {
         // bubble event up to gameController.
         eventMediator.trigger('beginChangeName');
       });
-      this.collection.bind('addMessage', this.view.addChatMessage);
+      eventMediator.bind('addMessage', this.view.addChatMessage);
       eventMediator.bind('removedPlayer', this.handlePlayerDisconnect);
       eventMediator.bind('changePlayerName', this.handleNameChange);
       eventMediator.bind('newLeader', this.handleNewLeader);
       eventMediator.bind('nextUp', this.notifyNextArtist);
+      eventMediator.bind('gameFinished', this.handleGameFinished);
     },
 
     setupSocketEvents: function () {

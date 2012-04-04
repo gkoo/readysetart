@@ -4,7 +4,7 @@ Pictionary.MessageCollection = Backbone.Collection.extend({
     _.extend(this, Backbone.Events);
     _.bindAll(this);
     this.bind('add', function(msg) {
-      _this.trigger('addMessage', msg);
+      Pictionary.getEventMediator().trigger('addMessage', msg);
     });
   },
 

@@ -35,15 +35,15 @@ Pictionary.GameControlsView = Backbone.View.extend({
   },
 
   clearBoard: function () {
-    this.trigger('gameControls:clearBoard', { 'eventName': 'clearBoard' });
+    Pictionary.getEventMediator().trigger('gameControls:clearBoard', { 'eventName': 'clearBoard' });
   },
 
   debug: function () {
-    this.trigger('gameControls:debug');
+    Pictionary.getEventMediator().trigger('debug');
   },
 
   doEndTurn: function () {
-    this.trigger('endTurn');
+    Pictionary.getEventMediator().trigger('endTurn');
   },
 
   doStartGame: function () {
@@ -57,7 +57,8 @@ Pictionary.GameControlsView = Backbone.View.extend({
 
   doStopGame: function () {
     var data = { 'gameStatus': Pictionary.statusEnum.FINISHED };
-    this.trigger('gameControls:stopGame', { 'eventName': 'gameStatus',
+    Pictionary.getEventMediator().trigger('stopGame',
+                                          { 'eventName': 'gameStatus',
                                             'data': data });
     this.updateControls(Pictionary.statusEnum.FINISHED);
     this.enableFreeDrawBtn();
@@ -88,13 +89,13 @@ Pictionary.GameControlsView = Backbone.View.extend({
     this.freeDrawBtn.attr('disabled', 'disabled');
   },
 
-  updateControls: function (o) {
-    if (o.gameStatus === Pictionary.statusEnum.IN_PROGRESS) {
+  updateControls: function (gameStatus) {
+    if (gameStatus === Pictionary.statusEnum.IN_PROGRESS) {
       this.$startBtn.attr('disabled', 'disabled');
       this.$stopBtn.removeAttr('disabled');
       //this.endBtn.removeAttr('disabled');
     }
-    else if (o.gameStatus === Pictionary.statusEnum.FINISHED) {
+    else if (gameStatus === Pictionary.statusEnum.FINISHED) {
       this.$startBtn.removeAttr('disabled');
       this.$stopBtn.attr('disabled', 'disabled');
       //this.endBtn.attr('disabled', 'disabled');

@@ -14,7 +14,6 @@ Pictionary = function () {
   // bind initGameModel here because we don't bind
   // the rest of the events until we get the game model
   // from the server.
-  //this.bind('initGameModel', this.handleGameModel);
   Pictionary.getEventMediator().bind('gameModel', this.handleGameModel);
 
   this.setupSocketEvents();
@@ -94,10 +93,11 @@ Pictionary.prototype = {
     var _this = this,
         eventMediator = Pictionary.getEventMediator();
 
-    this.bind('endTurn', function () {
-      _this.gameSocket.emit('endTurn');
-      _this.toggleYourTurn(false);
-    });
+    // TODO: reintroduce the end turn button.
+    //this.bind('endTurn', function () {
+      //_this.gameSocket.emit('endTurn');
+      //_this.toggleYourTurn(false);
+    //});
 
     eventMediator.bind('setName', function (name) {
       var o = { id: _this.userId,
@@ -108,22 +108,18 @@ Pictionary.prototype = {
     // Board Events
     eventMediator.bind('sendBoardPoints', this.emitGameSocketEvent);
     eventMediator.bind('completedBoardPath', this.emitGameSocketEvent);
-    this.boardView.bind('boardView:clear', this.emitGameSocketEvent);
-    this.boardView.bind('boardView:changeColor', this.emitGameSocketEvent);
+    eventMediator.bind('boardView:clear', this.emitGameSocketEvent);
+    eventMediator.bind('boardView:changeColor', this.emitGameSocketEvent);
 
     // Game Status Events
-    this.gameStatusController.bind('turnOver', this.boardView.disable);
-    this.gameStatusController.bind('turnOver', this.boardView.reset);
-    this.gameStatusController.bind('gameFinished', this.boardView.handleGameFinished);
-    this.gameStatusController.bind('gameFinished', this.chatController.handleGameFinished);
+    eventMediator.bind('gameFinished', this.boardView.handleGameFinished);
+    eventMediator.bind('gameFinished', this.chatController.handleGameFinished);
 
     // Game Controls Events
-    this.gameControls.bind('gameControls:clearBoard', this.emitGameSocketEvent);
-    this.gameControls.bind('gameControls:clearBoard', this.boardView.doClearAndBroadcast);
-    this.gameControls.bind('gameControls:debug', this.debug);
+    eventMediator.bind('gameControls:clearBoard', this.emitGameSocketEvent);
     eventMediator.bind('broadcastToggleFreeDraw', this.emitGameSocketEvent);
-    this.gameControls.bind('gameControls:stopGame', this.emitGameSocketEvent);
-    this.gameControls.bind('gameControls:stopGame', this.gameStatusController.reset);
+    eventMediator.bind('stopGame', this.emitGameSocketEvent);
+    eventMediator.bind('debug', this.debug);
   },
 
   handleGameModel: function (data) {
@@ -148,22 +144,6 @@ Pictionary.prototype = {
 
   getCurrPlayer: function () {
     return this.playersColl.get(this.userId);
-  },
-
-  toggleYourTurn: function (state) {
-    console.log('toggling turn: ' + state);
-    if (typeof state !== 'undefined') {
-      state = true;
-    }
-
-    if (state) {
-      this.statusElem.text('It is your turn');
-      this.endTurnElem.removeAttr('disabled');
-    }
-    else {
-      this.statusElem.text('It is not your turn');
-      this.endTurnElem.attr('disabled', 'disabled');
-    }
   },
 
   /* emitGameSocketEvent

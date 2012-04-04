@@ -14,7 +14,6 @@ Pictionary.BoardView = Backbone.View.extend({
     this.$yourColorEl = this.$('#yourColor');
     this.$nextUpEl = this.$('#nextUpMessage');
     this.$boardControls = this.$('#boardControls');
-    this.bind('boardView:drawEnabled', this.handleDrawEnable);
     this.handleFreeDraw(o); // check if we are in freeDraw mode
     this.setupBackboneEvents();
   },
@@ -79,6 +78,8 @@ Pictionary.BoardView = Backbone.View.extend({
     eventMediator.bind('toggleFreeDraw', this.handleFreeDraw);
     eventMediator.bind('completedPath', this.handleCompletedPath);
     eventMediator.bind('newPoints', this.handleNewPoints);
+    eventMediator.bind('gameControls:clearBoard', this.doClear);
+    eventMediator.bind('gameFinished', this.handleGameFinished);
     eventMediator.bind('broadcastToggleFreeDraw', function (data) {
       data.freeDrawEnabled ? _this.enable() : _this.disable();
     });
@@ -86,7 +87,8 @@ Pictionary.BoardView = Backbone.View.extend({
 
   doClearAndBroadcast: function () {
     this.doClear();
-    this.trigger('boardView:clear', { 'eventName': 'clearBoard' });
+    Pictionary.getEventMediator().trigger('boardView:clear',
+                                          { 'eventName': 'clearBoard' });
   },
 
   doClear: function() {
@@ -110,7 +112,8 @@ Pictionary.BoardView = Backbone.View.extend({
     this.$yourColorEl.children('.color').removeClass()
                                         .addClass('color ' + colorLabel);
 
-    this.trigger('boardView:changeColor', { 'eventName': 'changeColor',
+    Pictionary.getEventMediator().trigger('boardView:changeColor',
+                                          { 'eventName': 'changeColor',
                                             'data': this.brushColor });
   },
 
@@ -192,13 +195,13 @@ Pictionary.BoardView = Backbone.View.extend({
   enable: function() {
     this.enabled = true;
     this.$boardControls.show();
-    this.trigger('boardView:drawEnabled', true);
+    this.handleDrawEnable(true);
   },
 
   disable: function() {
     this.enabled = false;
     this.$boardControls.hide();
-    this.trigger('boardView:drawEnabled', false);
+    this.handleDrawEnable(false);
   },
 
   handleGameStatus: function (data) {

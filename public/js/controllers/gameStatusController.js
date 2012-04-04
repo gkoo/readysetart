@@ -1,8 +1,6 @@
 Pictionary.GameStatusController = function (o) {
   var controller = {
     initialize: function (o) {
-      var eventMediator = Pictionary.getEventMediator();
-
       _.extend(this, Backbone.Events, o.playerFns);
       _.bindAll(this);
 
@@ -13,15 +11,21 @@ Pictionary.GameStatusController = function (o) {
       this.model.bind('change:gameStatus', this.handleGameStatus);
       this.model.bind('change:currArtist', this.changeArtist);
 
-      eventMediator.bind('changeGameStatus', this.saveGameStatus);
-      eventMediator.bind('gameStatusUpdate', this.setGameStatus);
-      eventMediator.bind('nextUp', this.clearTimer);
-      eventMediator.bind('broadcastToggleFreeDraw', this.setFreeDraw);
+      this.setupEvents();
 
       if (this.model.get('turnStart')) {
         this.startPartialTimer();
       }
       return this;
+    },
+
+    setupEvents: function () {
+      var eventMediator = Pictionary.getEventMediator();
+      eventMediator.bind('changeGameStatus', this.saveGameStatus);
+      eventMediator.bind('gameStatusUpdate', this.setGameStatus);
+      eventMediator.bind('nextUp', this.clearTimer);
+      eventMediator.bind('broadcastToggleFreeDraw', this.setFreeDraw);
+      eventMediator.bind('stopGame', this.reset);
     },
 
     // saveGameStatus pushes state to the server.
@@ -100,7 +104,7 @@ Pictionary.GameStatusController = function (o) {
       }
       else if (gameStatus === Pictionary.statusEnum.FINISHED) {
         this.clearTimer();
-        this.trigger('gameFinished');
+        Pictionary.getEventMediator().trigger('gameFinished');
       }
     },
 
