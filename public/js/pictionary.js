@@ -1,12 +1,16 @@
 var gameSocket,
     chatSocket,
 
-Pictionary = function () {
+Pictionary = function (room) {
   var domainPrefix = debug ? 'http://localhost:8080' : 'http://warm-galaxy-5669.herokuapp.com';
   _.extend(this, Backbone.Events);
   _.bindAll(this);
   gameSocket = io.connect(domainPrefix + '/game');
   chatSocket = io.connect(domainPrefix + '/chat');
+
+  // join the room in both game and chat sockets
+  gameSocket.emit('join', room);
+  chatSocket.emit('join', room);
   this.gameSocket = gameSocket;
   this.model = new Pictionary.GameModel();
   this.chatController = new Pictionary.ChatController(chatSocket);

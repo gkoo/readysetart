@@ -1,0 +1,40 @@
+do we want chat to use backbone.sync?
+tear down a game model for room if last player leaves; same for chat!
+validate models on front end and back end
+make /chat.js use /public/js/models/messageCollection.js
+add eraser
+UNBIND EVENTS
+make sure artistOrder checks if player exists
+don't check system messages as guesses
+show game status updates in chat
+add debug tools
+check length of chat message. if it's longer than the longest word in lexicon, don't check for guess.
+add rooms
+
+NICE TO HAVE
+============
+change some event handlers to use obj.once
+add kick button for leader to ban people
+allow promoting someone else to leader role
+remember name
+make time left text red when <10 seconds left
+use css media queries to take advantage of wide screens
+preopulate chat messages for new players
+
+
+
+
+DONE
+==========================================
+make sure cached Paths are really removed once game is started
+once round is over, re-enable freeDraw btn
+make sure that freedraw is disabled when game starts
+if leader leaves, promote next player to leader
+clear board when correct guess
+fix notifyCorrectGuess
+5 second pauses between drawers
+handle case where currartist disconnects
+pictionary.js:150 make sure no race condition
+leader control to stop/pause game
+make timer run on server side
+make sure disconnect works correctly

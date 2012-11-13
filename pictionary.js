@@ -25,11 +25,11 @@ GameModel = Backbone.Model.extend({
   }
 }),
 
-Pictionary = {
+pictionary = {
   initialize: function () {
     _u.bindAll(this);
     _u.extend(this, Backbone.Events);
-    this.model = new GameModel();
+    this.models = {};
 
     return this;
   },
@@ -173,11 +173,15 @@ Pictionary = {
 
   handleDisconnect: function (socket) {
     var id         = socket.id,
-        players    = this.model.get('players'),
-        player     = players.get(id),
-        wasLeader  = player.get('isLeader'),
-        currArtist = this.model.get('players').getCurrentArtist(),
-        newLeader;
+        model      = this.models[socket.joinedRoom],
+        players, player, wasLeader, currArtist, newLeader;
+
+    if (!model) { return; }
+    players    = model.get('players'),
+    player     = players.get(id),
+    wasLeader  = player.get('isLeader'),
+    currArtist = model.get('players').getCurrentArtist(),
+    newLeader;
 
     // Remove player from players array
     players.remove(player);
@@ -187,7 +191,7 @@ Pictionary = {
       if (this.turnTimeout) {
         clearTimeout(this.turnTimeout);
       }
-      this.handleGameFinish();
+      this.handleGameFinish(socket.joinedRoom);
       return;
     }
 
@@ -210,8 +214,9 @@ Pictionary = {
   },
 
   // Create the data to pass to a newly connected player
-  createInitPlayerInfo: function (id) {
-    var players   = this.model.get('players'),
+  createInitPlayerInfo: function (id, room) {
+    var model     = this.models[room],
+        players   = model.get('players'),
         name      = 'Player ' + id,
         isLeader  = !players.length; // first player defaults to leader
 
@@ -249,7 +254,7 @@ Pictionary = {
     switch (data.modelName) {
       case 'gameModel':
         socket.emit(['read', data.modelName].join(':'),
-                    { 'model': this.model,
+                    { 'model': this.models[socket.joinedRoom],
                       'initPaths': this.allPaths,
                       'userId': socket.id });
         break;
@@ -282,23 +287,47 @@ Pictionary = {
     this.io = io.of('/game');
 
     this.io.on('connection', (function (socket) {
-      var initInfo = this.createInitPlayerInfo(socket.id),
-          players   = this.model.get('players');
+      console.log('[PICT] client connected');
+      // Don't send init info until the user has joined a room.
+      // TODO: create rooms for players, chat messages, etc
+      socket.on('join', (function(room) {
+        var oldRoom, initInfo, players, roomGameModel;
+        //console.log('\n\t[PICT] client joined room: ' + room);
 
-      players.add(initInfo);
+        if (typeof room !== "string") {
+          return;
+        }
 
-      this.chatController.broadcastNewPlayer(initInfo);
-      socket.broadcast.emit('newPlayer', initInfo); // Sends to everyone except for new user
+        // Make sure the socket is only in one room at a time.
+        if (typeof socket.joinedRoom !== 'undefined') {
+          // socket is joining room it's already in, so return.
+          if (room === socket.joinedRoom) { return; }
 
-      // LISTENERS
+          socket.leave(socket.joinedRoom);
+        }
 
-      socket.on('endTurn', function () {
-        console.log('endTurn');
-      });
+        socket.join(room);
+        socket.joinedRoom = room; // store for easy look up later
+
+        // Create game model for this room if it doesn't exist already.
+        roomGameModel = this.models[room];
+        if (!roomGameModel) {
+          roomGameModel = new GameModel();
+          this.models[room] = roomGameModel;
+        }
+
+        initInfo = this.createInitPlayerInfo(socket.id, room),
+        players  = roomGameModel.get('players');
+
+        players.add(initInfo);
+
+        this.chatController.broadcastNewPlayer(initInfo, room);
+        socket.broadcast.to(room).json.emit('newPlayer', initInfo); // Sends to everyone except for new user
+      }).bind(this));
 
       socket.on('setName', function (name) {
-        socket.get('id', function (err, id) {
-          var player;
+        if (typeof name === 'string') {
+          var player, id = socket.id;
 
           if (err) { console.log('[ERROR] ' + err); }
 
@@ -310,7 +339,7 @@ Pictionary = {
               name: name
             });
           }
-        });
+        }
       });
 
       socket.on('disconnect', (function () {
@@ -394,4 +423,4 @@ Pictionary = {
 };
 
 
-module.exports = Pictionary.initialize();
+module.exports = pictionary.initialize();

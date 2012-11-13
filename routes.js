@@ -23,6 +23,17 @@ app.configure('production', function(){
 
 // Routes
 
+app.get('/:room', function(req, res){
+  var room = req.params.room;
+  res.render('index', {
+    locals: {
+      title: 'Ready, Set, Art!',
+      room: room
+    },
+    layout: false
+  });
+});
+
 app.get('/', function(req, res){
   res.render('index', {
     locals: {
